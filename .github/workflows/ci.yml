@@ -82,16 +82,14 @@ jobs:
       - name: Build Docker image
         run: docker build -t url-shortener:test .
 
-      - name: Start services with docker compose
+      - name: Start all services
         run: |
-          docker compose up -d postgres
-          sleep 10
-          docker compose up -d app
-          sleep 5
+          docker compose up -d
+          sleep 15
 
-      - name: Test Docker services
+      - name: Test Nginx endpoint
         run: |
-          curl -f http://localhost:5000/health || exit 1
+          curl -f http://localhost:80/health || exit 1
 
       - name: Cleanup
         run: docker compose down

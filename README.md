@@ -1,192 +1,197 @@
-# MLH PE Hackathon — Flask + Peewee + PostgreSQL Template
+# URL Shortener - Meta PE Hackathon
 
-A minimal hackathon starter template. You get the scaffolding and database wiring — you build the models, routes, and CSV loading logic.
+A production-ready URL shortener service built for the Meta Production Engineering Hackathon.
 
-**Stack:** Flask · Peewee ORM · PostgreSQL · uv
+## Tech Stack
 
-## **Important**
+| Component | Technology |
+|-----------|------------|
+| **Backend** | Flask + Peewee ORM |
+| **Database** | PostgreSQL |
+| **Cache** | Redis |
+| **Load Balancer** | Nginx |
+| **Monitoring** | Prometheus + Grafana + Alertmanager |
+| **Testing** | pytest + k6 |
+| **Package Manager** | uv |
+| **Deployment** | Docker + Digital Ocean |
 
-You need to work with around the seed files that you can find in [MLH PE Hackathon](https://mlh-pe-hackathon.com) platform. This will help you build the schema for the database and have some data to do some testing and submit your project for judging. If you need help with this, reach out on Discord or on the Q&A tab on the platform.
+## Project Architecture
 
-## Prerequisites
+```
+┌─────────────────────────────────────────────────────────┐
+│                      Nginx (Port 80)                     │
+│                    Load Balancer                        │
+└────────────────────┬────────────────────────────────────┘
+                     │
+        ┌────────────┼────────────┐
+        ▼            ▼            ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│   App 1      │ │   App 2      │ │   App N      │
+│   Flask      │ │   Flask      │ │   Flask      │
+│   Gunicorn   │ │   Gunicorn   │ │   Gunicorn   │
+└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
+       └────────────────┼─────────────────┘
+                        ▼
+┌─────────────────────────────────────────────────────────┐
+│  Redis (Port 6379)        │  PostgreSQL (Port 5432)    │
+│  Cache Layer              │  Primary Database            │
+└───────────────────────────┴─────────────────────────────┘
+```
 
-- **uv** — a fast Python package manager that handles Python versions, virtual environments, and dependencies automatically.
-  Install it with:
-  ```bash
-  # macOS / Linux
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+## Branching Strategy
 
-  # Windows (PowerShell)
-  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-  ```
-  For other methods see the [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/).
-- PostgreSQL running locally (you can use Docker or a local instance)
+We use a **quest-based branching strategy** aligned with the hackathon requirements.
 
-## uv Basics
+### Branch Structure
 
-`uv` manages your Python version, virtual environment, and dependencies automatically — no manual `python -m venv` needed.
+```
+main (production-ready)
+├── quest/reliability-bronze    # Basic tests + /health endpoint
+├── quest/reliability-silver    # 50% coverage + CI/CD
+├── quest/reliability-gold      # 70% coverage + Chaos testing
+├── quest/scalability-bronze    # 50 concurrent users (k6)
+├── quest/scalability-silver    # 200 users + Docker + Nginx
+├── quest/scalability-gold      # 500 users + Redis + <5% errors
+├── quest/incident-bronze       # JSON logs + /metrics endpoint
+├── quest/incident-silver       # Alerts (Discord/Slack)
+└── quest/incident-gold         # Grafana dashboard + Runbook
+```
 
-| Command | What it does |
-|---------|--------------|
-| `uv sync` | Install all dependencies (creates `.venv` automatically) |
-| `uv run <script>` | Run a script using the project's virtual environment |
-| `uv add <package>` | Add a new dependency |
-| `uv remove <package>` | Remove a dependency |
+### Workflow
+
+```bash
+# 1. Start a quest branch from main
+git checkout main
+git pull origin main
+git checkout -b quest/reliability-bronze
+
+# 2. Develop and commit
+git add .
+git commit -m "feat: add basic tests and health endpoint"
+git push origin quest/reliability-bronze
+
+# 3. Create PR when quest tier is complete
+gh pr create --base main --head quest/reliability-bronze
+
+# 4. After PR merge, delete the branch
+git branch -d quest/reliability-bronze
+```
+
+### CI/CD Behavior
+
+| Branch | Tests | Docker | Quest Checks | Deploy |
+|--------|-------|--------|--------------|--------|
+| `quest/*` | ✅ | ✅ | ✅ | ❌ |
+| `main` | ✅ | ✅ | ✅ | ✅ |
+| PR to main | ✅ | ✅ | ✅ | ❌ |
+
+## Naming Conventions
+
+### Branches
+
+```
+quest/<quest-name>-<tier>     # e.g., quest/reliability-bronze
+feature/<description>          # e.g., feature/add-redis-cache
+fix/<description>              # e.g., fix/duplicate-short-code
+```
+
+### Commits
+
+```
+<type>: <description>
+
+Types:
+  feat     - New feature
+  fix      - Bug fix
+  test     - Adding tests
+  docs     - Documentation
+  refactor - Code refactoring
+  perf     - Performance improvement
+
+Examples:
+  feat: add Redis caching for URL lookups
+  test: add k6 load tests for 200 users
+  fix: handle duplicate short_code generation
+```
+
+### API Endpoints
+
+```
+GET  /health              # Health check
+GET  /users               # List users
+POST /users               # Create user
+GET  /users/<id>          # Get user by ID
+PUT  /users/<id>          # Update user
+POST /users/bulk          # Bulk import from CSV
+
+GET  /urls                # List URLs
+POST /urls                # Create short URL
+GET  /urls/<id>           # Get URL by ID
+PUT  /urls/<id>           # Update URL
+GET  /<short_code>        # Redirect to original URL
+
+GET  /events              # List analytics events
+GET  /metrics             # Prometheus metrics (Incident Quest)
+```
 
 ## Quick Start
 
 ```bash
-# 1. Clone the repo
-git clone <repo-url> && cd mlh-pe-hackathon
-
-# 2. Install dependencies
+# Install dependencies
 uv sync
 
-# 3. Create the database
-createdb hackathon_db
+# Start services with Docker
+make docker-up
 
-# 4. Configure environment
-cp .env.example .env   # edit if your DB credentials differ
+# Initialize database
+docker-compose exec app python init_db.py
 
-# 5. Run the server
-uv run run.py
+# Import seed data
+make import-csv
 
-# 6. Verify
-curl http://localhost:5000/health
-# → {"status":"ok"}
+# Test API
+curl http://localhost/health
 ```
 
-## Project Structure
+## Available Make Commands
 
-```
-mlh-pe-hackathon/
-├── app/
-│   ├── __init__.py          # App factory (create_app)
-│   ├── database.py          # DatabaseProxy, BaseModel, connection hooks
-│   ├── models/
-│   │   └── __init__.py      # Import your models here
-│   └── routes/
-│       └── __init__.py      # register_routes() — add blueprints here
-├── .env.example             # DB connection template
-├── .gitignore               # Python + uv gitignore
-├── .python-version          # Pin Python version for uv
-├── pyproject.toml           # Project metadata + dependencies
-├── run.py                   # Entry point: uv run run.py
-└── README.md
-```
+```bash
+make help              # Show all commands
 
-## How to Add a Model
+# Development
+make docker-up         # Start all services
+make docker-down       # Stop all services
+make docker-up-3       # Scale to 3 instances
 
-1. Create a file in `app/models/`, e.g. `app/models/product.py`:
+# Testing
+make test              # Run pytest
+make test-cov          # Run with coverage
+make load-test-bronze  # 50 users load test
+make load-test-silver  # 200 users load test
+make load-test-gold    # 500 users load test
 
-```python
-from peewee import CharField, DecimalField, IntegerField
-
-from app.database import BaseModel
-
-
-class Product(BaseModel):
-    name = CharField()
-    category = CharField()
-    price = DecimalField(decimal_places=2)
-    stock = IntegerField()
+# Monitoring
+make monitor-up        # Start Prometheus + Grafana
 ```
 
-2. Import it in `app/models/__init__.py`:
+## Quest Progress
 
-```python
-from app.models.product import Product
-```
+- [ ] **Reliability Bronze** - Basic tests, `/health` endpoint
+- [ ] **Reliability Silver** - 50% coverage, GitHub Actions CI
+- [ ] **Reliability Gold** - 70% coverage, graceful failure, chaos mode
+- [ ] **Scalability Bronze** - 50 concurrent users (k6)
+- [ ] **Scalability Silver** - 200 users, 2+ containers, Nginx
+- [ ] **Scalability Gold** - 500 users, Redis cache, <5% errors
+- [ ] **Incident Bronze** - JSON logs, `/metrics` endpoint
+- [ ] **Incident Silver** - Alerts to Discord, <5min notification
+- [ ] **Incident Gold** - Grafana dashboard, Runbook, Golden Signals
 
-3. Create the table (run once in a Python shell or a setup script):
+## Documentation
 
-```python
-from app.database import db
-from app.models.product import Product
+- [Docker Setup](DOCKER_SETUP.md) - Multi-service orchestration
+- [Deployment Guide](DEPLOY.md) - Digital Ocean deployment
+- [Branching Strategy](BRANCHING.md) - Detailed git workflow
 
-db.create_tables([Product])
-```
+## License
 
-## How to Add Routes
-
-1. Create a blueprint in `app/routes/`, e.g. `app/routes/products.py`:
-
-```python
-from flask import Blueprint, jsonify
-from playhouse.shortcuts import model_to_dict
-
-from app.models.product import Product
-
-products_bp = Blueprint("products", __name__)
-
-
-@products_bp.route("/products")
-def list_products():
-    products = Product.select()
-    return jsonify([model_to_dict(p) for p in products])
-```
-
-2. Register it in `app/routes/__init__.py`:
-
-```python
-def register_routes(app):
-    from app.routes.products import products_bp
-    app.register_blueprint(products_bp)
-```
-
-## How to Load CSV Data
-
-```python
-import csv
-from peewee import chunked
-from app.database import db
-from app.models.product import Product
-
-def load_csv(filepath):
-    with open(filepath, newline="") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
-
-    with db.atomic():
-        for batch in chunked(rows, 100):
-            Product.insert_many(batch).execute()
-```
-
-## Useful Peewee Patterns
-
-```python
-from peewee import fn
-from playhouse.shortcuts import model_to_dict
-
-# Select all
-products = Product.select()
-
-# Filter
-cheap = Product.select().where(Product.price < 10)
-
-# Get by ID
-p = Product.get_by_id(1)
-
-# Create
-Product.create(name="Widget", category="Tools", price=9.99, stock=50)
-
-# Convert to dict (great for JSON responses)
-model_to_dict(p)
-
-# Aggregations
-avg_price = Product.select(fn.AVG(Product.price)).scalar()
-total = Product.select(fn.SUM(Product.stock)).scalar()
-
-# Group by
-from peewee import fn
-query = (Product
-         .select(Product.category, fn.COUNT(Product.id).alias("count"))
-         .group_by(Product.category))
-```
-
-## Tips
-
-- Use `model_to_dict` from `playhouse.shortcuts` to convert model instances to dictionaries for JSON responses.
-- Wrap bulk inserts in `db.atomic()` for transactional safety and performance.
-- The template uses `teardown_appcontext` for connection cleanup, so connections are closed even when requests fail.
-- Check `.env.example` for all available configuration options.
+MIT License - Meta PE Hackathon 2026

@@ -1,0 +1,33 @@
+# ============================================
+# Docker Compose Override for Development
+# ============================================
+# Usage:
+#   docker-compose up -d              # Default: 1 app instance
+#   docker-compose up --scale app=3   # Scale to 3 app instances (Silver Quest)
+#   docker-compose up --scale app=5   # Scale to 5 app instances (Gold Quest)
+# ============================================
+
+version: '3.8'
+
+services:
+  app:
+    # Mount local code for hot-reload during development
+    volumes:
+      - ./app:/app/app:ro
+    # Override command for development (auto-reload)
+    # command: flask run --host=0.0.0.0 --reload
+    
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - backend
+    profiles:
+      - tools  # Only start with: docker-compose --profile tools up

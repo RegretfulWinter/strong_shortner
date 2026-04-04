@@ -1,0 +1,166 @@
+# ============================================
+# URL Shortener - Docker Compose Configuration
+# For Meta PE Hackathon Scalability & Incident Response Quests
+# ============================================
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # App Layer - Flask Application Instances
+  # Scalability Silver: Run 2+ instances
+  # Scalability Gold: Add Redis caching
+  # ==========================================
+  app:
+    build: .
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_NAME=hackathon_db
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - FLASK_ENV=production
+    depends_on:
+      - postgres
+      - redis
+    # Health check for load balancer
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Auto-restart on failure (Reliability Quest)
+    restart: unless-stopped
+    # Resource limits (Scalability Quest)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    # Don't expose ports directly - all traffic goes through Nginx
+    networks:
+      - backend
+      - frontend
+
+  # ==========================================
+  # Load Balancer - Nginx
+  # Scalability Silver: Distribute traffic to app instances
+  # ==========================================
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - frontend
+
+  # ==========================================
+  # Cache Layer - Redis
+  # Scalability Gold: Cache frequently accessed short codes
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    # Memory limit for cache
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    networks:
+      - backend
+
+  # ==========================================
+  # Database Layer - PostgreSQL
+  # ==========================================
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=hackathon_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+    networks:
+      - backend
+
+  # ==========================================
+  # Monitoring Stack - Incident Response Quest
+  # ==========================================
+  
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+
+  # Grafana - Visualization Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  # Alertmanager - Alert Routing (Discord/Slack)
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+# ==========================================
+# Networks - Service Isolation
+# ==========================================
+networks:
+  frontend:  # Nginx <-> App
+    driver: bridge
+  backend:   # App <-> Redis/Postgres
+    driver: bridge
+  monitoring: # Prometheus <-> Grafana/Alertmanager
+    driver: bridge
+
+# ==========================================
+# Volumes - Persistent Data
+# ==========================================
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:

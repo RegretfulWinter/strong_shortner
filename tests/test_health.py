@@ -2,10 +2,12 @@
 
 
 def test_health_endpoint(client):
-    """Test that /health returns 200 OK"""
+    """Test that /health returns 200 with healthy status"""
     response = client.get('/health')
     assert response.status_code == 200
-    assert response.json['status'] == 'ok'
+    assert response.json['status'] == 'healthy'
+    assert 'checks' in response.json
+    assert response.json['checks']['database']['status'] == 'healthy'
 
 
 def test_users_list_empty(client):

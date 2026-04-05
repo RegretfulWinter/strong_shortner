@@ -38,7 +38,7 @@ def create_app():
         health_data = {
             "status": "healthy" if db_status == "healthy" else "degraded",
             "version": "1.0.0",
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
             "environment": os.environ.get("FLASK_ENV", "production"),
             "checks": {
                 "database": {

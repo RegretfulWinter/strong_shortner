@@ -1,5 +1,6 @@
 import random
 import string
+import re
 from flask import Blueprint, request, jsonify, redirect
 from playhouse.shortcuts import model_to_dict
 from datetime import datetime
@@ -7,6 +8,30 @@ from app.models.url import URL
 from app.models.user import User
 
 urls_bp = Blueprint("urls", __name__)
+
+
+def validate_url(url):
+    """
+    Validate URL format.
+    Returns (is_valid, error_message)
+    """
+    if not url or not isinstance(url, str):
+        return False, "URL is required"
+    
+    # Basic URL pattern validation
+    # Must start with http:// or https://
+    url_pattern = re.compile(
+        r'^https?://'  # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain
+        r'localhost|'  # localhost
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # or IP
+        r'(?::\d+)?'  # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    
+    if not url_pattern.match(url):
+        return False, "Invalid URL format. URL must start with http:// or https://"
+    
+    return True, None
 
 
 def generate_short_code(length=6):
@@ -85,6 +110,12 @@ def create_url():
     if 'original_url' not in data:
         return jsonify({"error": "Original URL is required"}), 400
     
+    # Validate URL format
+    original_url = data['original_url']
+    is_valid, error_msg = validate_url(original_url)
+    if not is_valid:
+        return jsonify({"error": error_msg}), 400
+    
     user_id = data.get('user_id')
     if user_id:
         try:
@@ -99,7 +130,7 @@ def create_url():
     url = URL.create(
         user=user_id,
         short_code=short_code,
-        original_url=data['original_url'],
+        original_url=original_url,
         title=data.get('title', '')
     )
     

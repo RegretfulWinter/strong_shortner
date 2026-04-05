@@ -35,8 +35,21 @@ def validate_url(url):
 
 
 def generate_short_code(length=6):
+    """Generate unique short code - The Deceitful Scroll: ensure distinct marks"""
     chars = string.ascii_letters + string.digits
+    # Ensure no ambiguous characters
+    chars = chars.replace('O', '').replace('0', '').replace('l', '').replace('1', '')
     return ''.join(random.choices(chars, k=length))
+
+
+def validate_short_code(short_code):
+    """The Deceitful Scroll: validate short code format"""
+    if not short_code or not isinstance(short_code, str):
+        return False
+    if len(short_code) < 4 or len(short_code) > 20:
+        return False
+    # Only alphanumeric
+    return re.match(r'^[a-zA-Z0-9]+$', short_code) is not None
 
 
 @urls_bp.route("/urls", methods=["GET"])

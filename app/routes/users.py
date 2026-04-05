@@ -13,10 +13,27 @@ def validate_email(email):
 
 
 def validate_username(username):
-    """Validate username - at least 3 characters, alphanumeric and underscore"""
-    if not username or len(username) < 3:
+    """Validate username - The Unwitting Stranger: reject false names"""
+    if not username or not isinstance(username, str):
         return False
+    if len(username) < 3 or len(username) > 50:
+        return False
+    # Only alphanumeric and underscore, no spaces or special chars
     return re.match(r'^[a-zA-Z0-9_]+$', username) is not None
+
+
+def validate_user_input(data):
+    """The Unwitting Stranger: comprehensive input validation"""
+    if not isinstance(data, dict):
+        return False, "Request body must be a JSON object"
+    
+    # Check for unexpected fields (reject strangers with false credentials)
+    allowed_fields = {'username', 'email', 'title', 'is_active'}
+    for field in data.keys():
+        if field not in allowed_fields:
+            return False, f"Unexpected field: {field}"
+    
+    return True, None
 
 
 @users_bp.route("/users", methods=["GET"])

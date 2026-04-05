@@ -90,6 +90,14 @@ def create_user():
             username=username,
             email=email
         )
+        
+        # The Unseen Observer: Record event
+        from app.models.event import Event
+        Event.create(
+            event_type='user_created',
+            details=f'{{"username": "{username}", "email": "{email}"}}'
+        )
+        
         return jsonify(model_to_dict(user)), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 400

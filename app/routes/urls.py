@@ -123,6 +123,18 @@ def create_url():
         except User.DoesNotExist:
             return jsonify({"error": "User not found"}), 404
     
+    # The Twin's Paradox: Check if exact same URL already exists for this user
+    existing = URL.select().where(
+        (URL.original_url == original_url) & 
+        (URL.user == user_id)
+    ).first()
+    if existing:
+        return jsonify({
+            "error": "URL already exists",
+            "short_code": existing.short_code,
+            "url": model_to_dict(existing, recurse=False)
+        }), 409
+    
     short_code = generate_short_code()
     while URL.select().where(URL.short_code == short_code).exists():
         short_code = generate_short_code()
@@ -132,6 +144,15 @@ def create_url():
         short_code=short_code,
         original_url=original_url,
         title=data.get('title', '')
+    )
+    
+    # The Unseen Observer: Record event
+    from app.models.event import Event
+    Event.create(
+        url=url.id,
+        user=user_id,
+        event_type='url_created',
+        details=f'{{"short_code": "{short_code}", "original_url": "{original_url}"}}'
     )
     
     d = model_to_dict(url, recurse=False)
@@ -148,12 +169,25 @@ def update_url(url_id):
         return jsonify({"error": "URL not found"}), 404
     
     data = request.get_json()
+    was_deactivated = False
     for field in ['title', 'is_active']:
         if field in data:
+            if field == 'is_active' and url.is_active and not data[field]:
+                was_deactivated = True
             setattr(url, field, data[field])
     
     url.updated_at = datetime.now()
     url.save()
+    
+    # The Unseen Observer: Record event for deactivation
+    if was_deactivated:
+        from app.models.event import Event
+        Event.create(
+            url=url.id,
+            user=url.user,
+            event_type='url_deactivated',
+            details=f'{{"short_code": "{url.short_code}"}}'
+        )
     
     d = model_to_dict(url, recurse=False)
     if 'user' in d:

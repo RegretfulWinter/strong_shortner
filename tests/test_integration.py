@@ -189,4 +189,7 @@ class TestHealthEndpoint:
     def test_health_response_format(self, client):
         """Test health endpoint returns correct format"""
         response = client.get('/health')
-        assert response.json == {'status': 'ok'}
+        assert response.json['status'] == 'healthy'
+        assert 'version' in response.json
+        assert 'checks' in response.json
+        assert response.json['checks']['database']['status'] == 'healthy'

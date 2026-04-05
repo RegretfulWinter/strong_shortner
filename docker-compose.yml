@@ -32,8 +32,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    # Auto-restart on failure (Reliability Quest)
-    restart: unless-stopped
+    # Auto-restart on failure (Reliability Quest - Chaos Mode)
+    restart: always
     # Resource limits (Scalability Quest)
     deploy:
       resources:

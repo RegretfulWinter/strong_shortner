@@ -40,17 +40,17 @@ def create_app():
     def health():
         """Comprehensive health check endpoint"""
         # Check database connectivity
-        db_status = "healthy"
+        db_status = "ok"
         try:
             from app.models.user import User
             # Simple query to verify DB connection
             User.select().limit(1).execute()
         except Exception:
-            db_status = "unhealthy"
+            db_status = "error"
 
         # Build health response
         health_data = {
-            "status": "healthy" if db_status == "healthy" else "degraded",
+            "status": "ok" if db_status == "ok" else "degraded",
             "version": "1.0.0",
             "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
             "environment": os.environ.get("FLASK_ENV", "production"),
@@ -60,7 +60,7 @@ def create_app():
                     "latency_ms": "<100"
                 },
                 "application": {
-                    "status": "healthy",
+                    "status": "ok",
                     "uptime": "running"
                 }
             }

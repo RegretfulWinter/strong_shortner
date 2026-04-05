@@ -107,27 +107,28 @@ def create_users_bulk():
         # If it's a simple row_count request (for testing)
         row_count = data.get('row_count', 0)
         if row_count > 0:
-            # Create dummy users for testing
+            # Create dummy users for testing with unique identifiers
+            import time
             created = []
+            base_count = User.select().count()
+            timestamp = int(time.time())
             for i in range(min(row_count, 400)):  # Max 400
                 try:
                     user = User.create(
-                        username=f"user_{i+1}_{User.select().count()}",
-                        email=f"user{i+1}@example.com"
+                        username=f"bulk_{timestamp}_{i}",
+                        email=f"bulk_{timestamp}_{i}@example.com"
                     )
                     created.append(model_to_dict(user))
-                except Exception:
-                    pass
+                except Exception as e:
+                    # Log error but continue
+                    print(f"Error creating user {i}: {e}")
+                    continue
             count = len(created)
             return jsonify({
                 "status": "success",
-                "data": {
-                    "imported": count,
-                    "message": f"Successfully imported {count} users"
-                },
-                "meta": {
-                    "row_count": count
-                }
+                "message": f"Created {count} users",
+                "row_count": count,
+                "imported": count
             }), 201
         
         return jsonify({"message": "No users to create", "row_count": 0}), 201

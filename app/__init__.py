@@ -58,6 +58,37 @@ def create_app():
 
         return jsonify(health_data)
 
+    # Error handlers - return clean JSON, not stack traces
+    @app.errorhandler(400)
+    def handle_400(error):
+        """Handle bad request errors"""
+        if hasattr(error, 'description') and isinstance(error.description, str):
+            return jsonify({"error": error.description}), 400
+        return jsonify({"error": "Bad request"}), 400
+
+    @app.errorhandler(404)
+    def handle_404(error):
+        """Handle not found errors"""
+        return jsonify({"error": "Resource not found"}), 404
+
+    @app.errorhandler(500)
+    def handle_500(error):
+        """Handle internal server errors - log details but return clean message"""
+        import traceback
+        app.logger.error(f"Internal server error: {error}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": "Internal server error. Please try again later."}), 500
+
+    # Simulate real 500 error scenarios for graceful failure testing
+    @app.route("/divide")
+    def divide_by_zero():
+        """Simulates a runtime error (e.g., bug in calculation logic)"""
+        # This simulates a real bug: e.g., processing user input without validation
+        a = 10
+        b = 0  # Could come from bad user input
+        result = a / b  # ZeroDivisionError - real crash scenario
+        return jsonify({"result": result})
+
     # Initialize seed data if tables are empty
     with app.app_context():
         _init_seed_data()

@@ -50,23 +50,30 @@ jobs:
           DATABASE_USER: postgres
           DATABASE_PASSWORD: postgres
         run: uv run python init_db.py
-      - name: Run Unit Tests
-        env:
-          DATABASE_HOST: localhost
-          DATABASE_PORT: 5432
-          DATABASE_NAME: hackathon_db
-          DATABASE_USER: postgres
-          DATABASE_PASSWORD: postgres
-        run: uv run pytest tests/test_unit.py tests/test_health.py -v
+      - name: 📋 List All Tests
+        run: uv run pytest tests/ --collect-only -q
 
-      - name: Run Integration Tests
+      - name: 🧪 Run Unit Tests
         env:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           DATABASE_NAME: hackathon_db
           DATABASE_USER: postgres
           DATABASE_PASSWORD: postgres
-        run: uv run pytest tests/test_integration.py -v
+        run: |
+          echo "Running Unit Tests..."
+          uv run pytest tests/test_unit.py tests/test_health.py -v --tb=short
+
+      - name: 🔗 Run Integration Tests
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: hackathon_db
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+        run: |
+          echo "Running Integration Tests..."
+          uv run pytest tests/test_integration.py -v --tb=short
 
       - name: Generate Coverage Report
         env:

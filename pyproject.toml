@@ -8,9 +8,11 @@ dependencies = [
     "gunicorn>=23.0",
     "peewee>=3.17",
     "prometheus-client>=0.24.1",
+    "prometheus-flask-exporter>=0.23",
     "psycopg2-binary>=2.9",
     "pypdf2>=3.0.1",
     "python-dotenv>=1.0",
+    "python-json-logger>=2.0",
     "redis>=7.4.0",
 ]
 

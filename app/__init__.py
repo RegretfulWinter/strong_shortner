@@ -1,19 +1,51 @@
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, send_from_directory
+from werkzeug.routing import BaseConverter
 import datetime
 import os
+import re
 
 from app.database import init_db
 from app.routes import register_routes
+from app.logging_config import setup_logging, get_logger
+
+# Setup structured JSON logging
+setup_logging()
+logger = get_logger(__name__)
 
 # Get the absolute path to the static directory
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+
+
+class ShortCodeConverter(BaseConverter):
+    """Custom URL converter for short codes - excludes system paths"""
+    # Short codes are 6+ alphanumeric characters
+    # This excludes paths like 'metrics', 'health', 'api', etc.
+    regex = r'[a-zA-Z0-9]{6,}'
+    
+    def to_python(self, value):
+        # Additional check to exclude system paths
+        system_paths = {'metrics', 'health', 'api', 'static', 'favicon'}
+        if value.lower() in system_paths:
+            raise ValueError(f"'{value}' is a reserved path")
+        return value
 
 
 def create_app():
     load_dotenv()
 
     app = Flask(__name__)
+    
+    # Register custom URL converter
+    app.url_map.converters['shortcode'] = ShortCodeConverter
+    
+    # Initialize Prometheus metrics exporter
+    # Incident Response Quest - Bronze: The Watchtower
+    from prometheus_flask_exporter import PrometheusMetrics
+    metrics = PrometheusMetrics(app)
+    
+    # Add default metrics for CPU, memory, etc.
+    metrics.info('app_info', 'URL Shortener Application', version='1.0.0')
 
     init_db(app)
 
@@ -22,8 +54,9 @@ def create_app():
     register_routes(app)
 
     # Register short URL redirect at app level
+    # Uses custom converter to exclude system paths
     from app.routes.urls import redirect_short_url
-    app.add_url_rule('/<string:short_code>', 'redirect_short', redirect_short_url)
+    app.add_url_rule('/<shortcode:short_code>', 'redirect_short', redirect_short_url)
 
     # Serve frontend static files
     @app.route('/')
@@ -89,8 +122,12 @@ def create_app():
     def handle_500(error):
         """Handle internal server errors - log details but return clean message"""
         import traceback
-        app.logger.error(f"Internal server error: {error}")
-        app.logger.error(traceback.format_exc())
+        logger.error("Internal server error", extra={
+            "error": str(error),
+            "traceback": traceback.format_exc(),
+            "path": request.path,
+            "method": request.method
+        })
         return jsonify({"error": "Internal server error. Please try again later."}), 500
 
     # Simulate real 500 error scenarios for graceful failure testing
@@ -112,8 +149,8 @@ def create_app():
 
 def _health_html_page(data):
     """Generate a nice HTML health page for screenshots"""
-    status_color = "#28a745" if data["status"] == "healthy" else "#ffc107"
-    status_icon = "✓" if data["status"] == "healthy" else "⚠"
+    status_color = "#28a745" if data["status"] == "ok" else "#ffc107"
+    status_icon = "✓" if data["status"] == "ok" else "⚠"
 
     html = f"""
     <!DOCTYPE html>
@@ -316,12 +353,11 @@ def _init_seed_data():
     from app.models.user import User
     from app.models.url import URL
     from app.models.event import Event
-    import secrets
 
     try:
         # Check if we have any users
         if User.select().count() == 0:
-            # Create seed users with API tokens
+            # Create seed users
             users = [
                 {"username": "admin", "email": "admin@example.com"},
                 {"username": "testuser1", "email": "test1@example.com"},
@@ -329,14 +365,14 @@ def _init_seed_data():
             ]
             for u in users:
                 try:
-                    user = User.create(
-                        username=u["username"], 
-                        email=u["email"],
-                        api_token=secrets.token_urlsafe(32)
-                    )
+                    User.create(username=u["username"], email=u["email"])
                 except Exception:
                     pass
-            print(f"Created {User.select().count()} seed users")
+            logger.info("Seed data created", extra={
+                "component": "DB",
+                "entity": "users",
+                "count": User.select().count()
+            })
 
         # Check if we have any URLs
         if URL.select().count() == 0:
@@ -354,7 +390,11 @@ def _init_seed_data():
                     )
                 except Exception:
                     pass
-            print(f"Created {URL.select().count()} seed URLs")
+            logger.info("Seed data created", extra={
+                "component": "DB",
+                "entity": "urls",
+                "count": URL.select().count()
+            })
 
         # Check if we have any events
         if Event.select().count() == 0:
@@ -363,7 +403,15 @@ def _init_seed_data():
                 Event.create(event_type="created", details='{"message": "Initial setup"}')
             except Exception:
                 pass
-            print(f"Created {Event.select().count()} seed events")
+            logger.info("Seed data created", extra={
+                "component": "DB",
+                "entity": "events",
+                "count": Event.select().count()
+            })
 
     except Exception as e:
-        print(f"Seed data init error (may be normal on first run): {e}")
+        logger.warning("Seed data initialization skipped", extra={
+            "component": "DB",
+            "message": "May be normal on first run",
+            "error": str(e)
+        })

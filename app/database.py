@@ -1,7 +1,9 @@
 import os
 
 from peewee import DatabaseProxy, Model, PostgresqlDatabase
+from app.logging_config import get_logger
 
+logger = get_logger(__name__)
 db = DatabaseProxy()
 
 
@@ -29,9 +31,17 @@ def init_db(app):
         # Use a transaction to prevent race conditions between workers
         with db.atomic():
             db.create_tables([User, URL, Event], safe=True)
+        logger.info("Database tables initialized", extra={
+            "component": "DB",
+            "tables": ["User", "URL", "Event"]
+        })
     except Exception as e:
         # Tables probably already exist, ignore the error
-        print(f"Note: Table creation skipped (may already exist): {e}")
+        logger.info("Database tables already exist", extra={
+            "component": "DB",
+            "message": "Table creation skipped",
+            "error": str(e)
+        })
 
     @app.before_request
     def _db_connect():

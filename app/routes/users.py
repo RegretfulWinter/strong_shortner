@@ -159,11 +159,10 @@ def create_users_bulk():
             csv_reader = csv.DictReader(stream)
             created = []
             failed = []
-            seen_usernames = set()
             
             for i, row in enumerate(csv_reader):
                 try:
-                    # Use CSV data directly
+                    # Use CSV data directly without any modification
                     username = row.get('username', '').strip()
                     email = row.get('email', '').strip()
                     
@@ -171,16 +170,7 @@ def create_users_bulk():
                         failed.append(f"Row {i}: empty username or email")
                         continue
                     
-                    # Handle username duplicates in CSV (username has unique constraint)
-                    # Email can be duplicated, so we keep it as-is
-                    original_username = username
-                    attempt = 0
-                    while username in seen_usernames:
-                        attempt += 1
-                        username = f"{original_username}_{attempt}"
-                    
-                    seen_usernames.add(username)
-                    
+                    # Create user as-is, allowing duplicates
                     user = User.create(username=username, email=email)
                     created.append(model_to_dict(user))
                 except Exception as e:

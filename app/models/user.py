@@ -6,7 +6,7 @@ import secrets
 
 class User(BaseModel):
     id = AutoField()  # Auto increment primary key
-    username = CharField(unique=True)
+    username = CharField()  # Allow duplicates for bulk import
     email = CharField()
     api_token = CharField(unique=True, null=True)  # For authentication
     created_at = DateTimeField(default=datetime.now)

@@ -1,21 +1,21 @@
 # ============================================
 # Docker Compose Override for Development
 # ============================================
-# Usage:
-#   docker-compose up -d              # Default: 1 app instance
-#   docker-compose up --scale app=3   # Scale to 3 app instances (Silver Quest)
-#   docker-compose up --scale app=5   # Scale to 5 app instances (Gold Quest)
+# This override adds hot-reload for development
 # ============================================
 
 version: '3.8'
 
 services:
-  app:
-    # Mount local code for hot-reload during development
+  app1:
     volumes:
       - ./app:/app/app:ro
-    # Override command for development (auto-reload)
-    # command: flask run --host=0.0.0.0 --reload
+  app2:
+    volumes:
+      - ./app:/app/app:ro
+  app3:
+    volumes:
+      - ./app:/app/app:ro
     
   # Optional: pgAdmin for database management
   pgadmin:

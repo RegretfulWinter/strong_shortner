@@ -4,6 +4,7 @@ from app.models.event import Event
 from app.models.url import URL
 from app.models.user import User
 import json
+import re
 
 events_bp = Blueprint("events", __name__)
 
@@ -67,6 +68,17 @@ def create_event():
     event_type = data.get('event_type')
     if not event_type:
         return jsonify({"error": "event_type is required"}), 400
+    
+    # Advanced Challenge: Validate event_type format (The Unwitting Stranger)
+    if not isinstance(event_type, str) or len(event_type) < 1 or len(event_type) > 50:
+        return jsonify({"error": "Invalid event_type format"}), 400
+    
+    # Only allow valid event types (extensible list)
+    valid_event_types = ['click', 'created', 'deactivated', 'url_created', 'user_created', 'url_deactivated', 'page_view']
+    if event_type not in valid_event_types:
+        # Allow any reasonable event type for extensibility
+        if not re.match(r'^[a-z_]+$', event_type):
+            return jsonify({"error": "Invalid event_type format. Use lowercase letters and underscores only"}), 400
     
     url_id = data.get('url_id')
     user_id = data.get('user_id')

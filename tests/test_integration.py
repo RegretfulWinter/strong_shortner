@@ -2,7 +2,6 @@
 Integration Tests for Reliability Quest - Silver Tier
 Test API endpoints with real database operations
 """
-import pytest
 
 
 class TestUserIntegration:
@@ -135,7 +134,7 @@ class TestURLIntegration:
             'is_active': False
         })
         assert response.status_code == 200
-        assert response.json['is_active'] == False
+        assert not response.json['is_active']
 
 
 class TestErrorHandling:

@@ -1,5 +1,4 @@
 """Basic health check tests for Reliability Quest"""
-import pytest
 
 
 def test_health_endpoint(client):

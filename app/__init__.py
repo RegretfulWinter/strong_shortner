@@ -1,8 +1,7 @@
 from dotenv import load_dotenv
 from flask import Flask, jsonify
-import os
 
-from app.database import init_db, db
+from app.database import init_db
 from app.routes import register_routes
 
 
@@ -16,7 +15,7 @@ def create_app():
     from app import models  # noqa: F401 - registers models with Peewee
 
     register_routes(app)
-    
+
     # Register short URL redirect at app level
     from app.routes.urls import redirect_short_url
     app.add_url_rule('/<string:short_code>', 'redirect_short', redirect_short_url)
@@ -24,7 +23,7 @@ def create_app():
     @app.route("/health")
     def health():
         return jsonify(status="ok")
-    
+
     # Initialize seed data if tables are empty
     with app.app_context():
         _init_seed_data()
@@ -37,7 +36,7 @@ def _init_seed_data():
     from app.models.user import User
     from app.models.url import URL
     from app.models.event import Event
-    
+
     try:
         # Check if we have any users
         if User.select().count() == 0:
@@ -50,10 +49,10 @@ def _init_seed_data():
             for u in users:
                 try:
                     User.create(username=u["username"], email=u["email"])
-                except:
+                except Exception:
                     pass
             print(f"Created {User.select().count()} seed users")
-        
+
         # Check if we have any URLs
         if URL.select().count() == 0:
             # Create seed URLs
@@ -68,18 +67,18 @@ def _init_seed_data():
                         original_url=url_data["original_url"],
                         title=url_data["title"]
                     )
-                except:
+                except Exception:
                     pass
             print(f"Created {URL.select().count()} seed URLs")
-        
+
         # Check if we have any events
         if Event.select().count() == 0:
             # Create seed events
             try:
                 Event.create(event_type="created", details='{"message": "Initial setup"}')
-            except:
+            except Exception:
                 pass
             print(f"Created {Event.select().count()} seed events")
-            
+
     except Exception as e:
         print(f"Seed data init error (may be normal on first run): {e}")

@@ -86,7 +86,7 @@ class TestURLModel:
             )
             assert url.id is not None
             assert url.short_code == f'unit{unique_id}'
-            assert url.is_active == True
+            assert url.is_active
     
     def test_url_deactivation(self, app):
         """Test deactivating a URL"""
@@ -99,9 +99,9 @@ class TestURLModel:
             )
             url.is_active = False
             url.save()
-            
+
             fetched = URL.get_by_id(url.id)
-            assert fetched.is_active == False
+            assert not fetched.is_active
 
 
 class TestEventModel:

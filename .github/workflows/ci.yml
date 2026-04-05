@@ -86,8 +86,9 @@ jobs:
 
       - name: Check code style
         run: |
-          pip install ruff || true
-          ruff check . || true
+          pip install ruff
+          echo "🎨 Running code style checks..."
+          ruff check --output-format=github --show-source . || true
         continue-on-error: true
 
   docker-build:

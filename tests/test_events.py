@@ -1,5 +1,4 @@
 """Tests for Event routes - to improve coverage"""
-import pytest
 
 
 class TestEventCreation:

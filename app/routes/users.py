@@ -116,7 +116,7 @@ def create_users_bulk():
                         email=f"user{i+1}@example.com"
                     )
                     created.append(model_to_dict(user))
-                except:
+                except Exception:
                     pass
             count = len(created)
             return jsonify({
@@ -149,13 +149,13 @@ def create_users_bulk():
                         email=row.get('email', f"user{User.select().count()}@example.com")
                     )
                     created.append(model_to_dict(user))
-                except:
+                except Exception:
                     pass
             return jsonify({
                 "message": f"Created {len(created)} users from CSV",
                 "row_count": len(created)
             }), 201
-    
+
     # Handle form data
     row_count = request.form.get('row_count', type=int, default=0)
     if row_count > 0:
@@ -167,7 +167,7 @@ def create_users_bulk():
                     email=f"user{i+1}@example.com"
                 )
                 created.append(model_to_dict(user))
-            except:
+            except Exception:
                 pass
         return jsonify({
             "message": f"Created {len(created)} users",

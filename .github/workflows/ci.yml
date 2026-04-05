@@ -50,14 +50,32 @@ jobs:
           DATABASE_USER: postgres
           DATABASE_PASSWORD: postgres
         run: uv run python init_db.py
-      - name: Run tests with coverage
+      - name: Run Unit Tests
         env:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           DATABASE_NAME: hackathon_db
           DATABASE_USER: postgres
           DATABASE_PASSWORD: postgres
-        run: uv run pytest tests/ -v --cov=app --cov-report=xml
+        run: uv run pytest tests/test_unit.py tests/test_health.py -v
+
+      - name: Run Integration Tests
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: hackathon_db
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+        run: uv run pytest tests/test_integration.py -v
+
+      - name: Generate Coverage Report
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: hackathon_db
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+        run: uv run pytest tests/ -v --cov=app --cov-report=term-missing
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:

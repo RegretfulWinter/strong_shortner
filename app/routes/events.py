@@ -57,10 +57,20 @@ def list_events():
 
 @events_bp.route("/events", methods=["POST"])
 def create_event():
-    """Create a new event"""
+    """Create a new event - Challenge 6: The Fractured Vessel"""
+    # Challenge 6: The Fractured Vessel - Must arrive in proper vessel (application/json)
+    if not request.is_json:
+        return jsonify({"error": "Content-Type must be application/json"}), 415
+    
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
+    
+    # Challenge 6: The Fractured Vessel - Reject shapeless mist (null/undefined)
+    if data is None:
+        return jsonify({"error": "Invalid JSON body"}), 400
+    
+    # Challenge 6: The Fractured Vessel - Reject loose string (not a JSON object)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request body must be a JSON object"}), 400
     
     event_type = data.get('event_type')
     if not event_type:

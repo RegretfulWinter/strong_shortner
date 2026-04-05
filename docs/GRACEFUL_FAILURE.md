@@ -55,13 +55,15 @@ curl http://45.63.124.31/users/999999
 ```
 **Result:** `{"error": "User not found"}` ✓
 
-### 6. Server Error (500)
+### 6. Server Error (500) - Runtime Bug
 ```bash
-curl http://45.63.124.31/__test/500
+curl http://45.63.124.31/divide
 ```
 **Result:** `{"error": "Internal server error. Please try again later."}` ✓
 
-> **Note:** The `/__test/500` endpoint intentionally triggers a 500 error to demonstrate error handling. It returns clean JSON without stack traces.
+> **What this simulates:** A real bug in code (e.g., divide by zero, null pointer)  
+> **What should NOT happen:** Stack trace exposed to user, app crashes  
+> **What SHOULD happen:** Clean JSON error, error logged server-side
 
 ## What "Graceful" Means
 

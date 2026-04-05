@@ -82,11 +82,19 @@ curl -X POST http://localhost:5000/users \
 }
 ```
 
-### 6. Internal Server Error (500)
+### 6. Internal Server Error (500) - Runtime Bug
+
+**Scenario:** A bug in code causes an unhandled exception (divide by zero, null pointer, etc.)
 
 **Request:**
 ```bash
-curl http://localhost:5000/__test/500
+curl http://localhost:5000/divide
+```
+
+**What happens internally:**
+```python
+# Code has a bug: divide by zero
+result = 10 / 0  # ZeroDivisionError
 ```
 
 **Response (500 Internal Server Error):**
@@ -96,7 +104,14 @@ curl http://localhost:5000/__test/500
 }
 ```
 
-> **Note:** Stack traces are logged server-side for debugging, but never exposed to users.
+**What is NOT returned (❌ bad practice):**
+```
+ZeroDivisionError: division by zero
+File "/app/routes/calc.py", line 15, in calculate
+    result = a / b
+```
+
+> **Key:** Stack traces are logged server-side for developers, but users see only a clean error message.
 
 ## Key Characteristics
 

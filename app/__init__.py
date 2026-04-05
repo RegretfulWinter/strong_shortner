@@ -79,11 +79,15 @@ def create_app():
         app.logger.error(traceback.format_exc())
         return jsonify({"error": "Internal server error. Please try again later."}), 500
 
-    # Test endpoint for 500 error handling (before short URL route)
-    @app.route("/__test/500")
-    def test_500():
-        """Intentionally trigger a 500 error for testing"""
-        raise Exception("Intentional test error")
+    # Simulate real 500 error scenarios for graceful failure testing
+    @app.route("/divide")
+    def divide_by_zero():
+        """Simulates a runtime error (e.g., bug in calculation logic)"""
+        # This simulates a real bug: e.g., processing user input without validation
+        a = 10
+        b = 0  # Could come from bad user input
+        result = a / b  # ZeroDivisionError - real crash scenario
+        return jsonify({"result": result})
 
     # Initialize seed data if tables are empty
     with app.app_context():

@@ -35,25 +35,36 @@ def list_urls():
     page = request.args.get('page', type=int)
     per_page = request.args.get('per_page', type=int)
     
+    def url_to_dict(url):
+        """Convert URL to dict with user_id field"""
+        d = model_to_dict(url)
+        # Ensure user is represented as user_id
+        if 'user' in d:
+            d['user_id'] = d.pop('user')
+        return d
+    
     if page and per_page:
         query = query.paginate(page, per_page)
         urls = list(query)
         return jsonify({
-            "items": [model_to_dict(u) for u in urls],
+            "items": [url_to_dict(u) for u in urls],
             "total": total,
             "page": page,
             "per_page": per_page
         })
     
     urls = list(query)
-    return jsonify([model_to_dict(u) for u in urls])
+    return jsonify([url_to_dict(u) for u in urls])
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["GET"])
 def get_url(url_id):
     try:
         url = URL.get_by_id(url_id)
-        return jsonify(model_to_dict(url))
+        d = model_to_dict(url)
+        if 'user' in d:
+            d['user_id'] = d.pop('user')
+        return jsonify(d)
     except URL.DoesNotExist:
         return jsonify({"error": "URL not found"}), 404
 
@@ -82,7 +93,10 @@ def create_url():
         title=data.get('title', '')
     )
     
-    return jsonify(model_to_dict(url)), 201
+    d = model_to_dict(url)
+    if 'user' in d:
+        d['user_id'] = d.pop('user')
+    return jsonify(d), 201
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["PUT"])
@@ -100,7 +114,10 @@ def update_url(url_id):
     url.updated_at = datetime.now()
     url.save()
     
-    return jsonify(model_to_dict(url))
+    d = model_to_dict(url)
+    if 'user' in d:
+        d['user_id'] = d.pop('user')
+    return jsonify(d)
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["DELETE"])

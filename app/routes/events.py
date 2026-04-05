@@ -28,6 +28,15 @@ def list_events():
     
     total = query.count()
     
+    def event_to_dict(event):
+        """Convert Event to dict with url_id and user_id fields"""
+        d = model_to_dict(event)
+        if 'url' in d:
+            d['url_id'] = d.pop('url')
+        if 'user' in d:
+            d['user_id'] = d.pop('user')
+        return d
+    
     # Support pagination
     page = request.args.get('page', type=int)
     per_page = request.args.get('per_page', type=int)
@@ -36,14 +45,14 @@ def list_events():
         query = query.paginate(page, per_page)
         events = list(query)
         return jsonify({
-            "items": [model_to_dict(e) for e in events],
+            "items": [event_to_dict(e) for e in events],
             "total": total,
             "page": page,
             "per_page": per_page
         })
     
     events = list(query)
-    return jsonify([model_to_dict(e) for e in events])
+    return jsonify([event_to_dict(e) for e in events])
 
 
 @events_bp.route("/events", methods=["POST"])
@@ -85,4 +94,9 @@ def create_event():
         details=details
     )
     
-    return jsonify(model_to_dict(event)), 201
+    d = model_to_dict(event)
+    if 'url' in d:
+        d['url_id'] = d.pop('url')
+    if 'user' in d:
+        d['user_id'] = d.pop('user')
+    return jsonify(d), 201

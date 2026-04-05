@@ -36,13 +36,7 @@ def list_urls():
     per_page = request.args.get('per_page', type=int)
     
     def url_to_dict(url):
-        """Convert URL to dict with user_id field"""
-        # Use recurse=False to prevent expanding foreign keys
-        d = model_to_dict(url, recurse=False)
-        # user field will be the integer ID, rename to user_id
-        if 'user' in d:
-            d['user_id'] = d.pop('user')
-        return d
+        return model_to_dict(url, recurse=False)
     
     if page and per_page:
         query = query.paginate(page, per_page)
@@ -62,10 +56,7 @@ def list_urls():
 def get_url(url_id):
     try:
         url = URL.get_by_id(url_id)
-        d = model_to_dict(url, recurse=False)
-        if 'user' in d:
-            d['user_id'] = d.pop('user')
-        return jsonify(d)
+        return jsonify(model_to_dict(url, recurse=False))
     except URL.DoesNotExist:
         return jsonify({"error": "URL not found"}), 404
 
@@ -103,10 +94,7 @@ def create_url():
         title=data.get('title', '')
     )
     
-    d = model_to_dict(url, recurse=False)
-    if 'user' in d:
-        d['user_id'] = d.pop('user')
-    return jsonify(d), 201
+    return jsonify(model_to_dict(url, recurse=False)), 201
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["PUT"])
@@ -124,10 +112,7 @@ def update_url(url_id):
     url.updated_at = datetime.now()
     url.save()
     
-    d = model_to_dict(url, recurse=False)
-    if 'user' in d:
-        d['user_id'] = d.pop('user')
-    return jsonify(d)
+    return jsonify(model_to_dict(url, recurse=False))
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["DELETE"])

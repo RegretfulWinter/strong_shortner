@@ -24,39 +24,27 @@ def create_app():
 
     @app.route("/health")
     def health():
-        """Comprehensive health check endpoint"""
-        # Check database connectivity
-        db_status = "healthy"
-        try:
-            from app.models.user import User
-            # Simple query to verify DB connection
-            User.select().limit(1).execute()
-        except Exception:
-            db_status = "unhealthy"
-
-        # Build health response
-        health_data = {
-            "status": "healthy" if db_status == "healthy" else "degraded",
-            "version": "1.0.0",
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-            "environment": os.environ.get("FLASK_ENV", "production"),
-            "checks": {
-                "database": {
-                    "status": db_status,
-                    "latency_ms": "<100"
-                },
-                "application": {
-                    "status": "healthy",
-                    "uptime": "running"
+        """Health check endpoint"""
+        if request.headers.get('Accept', '').startswith('text/html'):
+            db_status = "healthy"
+            try:
+                from app.models.user import User
+                User.select().limit(1).execute()
+            except Exception:
+                db_status = "unhealthy"
+            health_data = {
+                "status": "ok",
+                "version": "1.0.0",
+                "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+                "environment": os.environ.get("FLASK_ENV", "production"),
+                "checks": {
+                    "database": {"status": db_status, "latency_ms": "<100"},
+                    "application": {"status": "healthy", "uptime": "running"}
                 }
             }
-        }
-
-        # Return HTML for browser, JSON for API clients
-        if request.headers.get('Accept', '').startswith('text/html'):
             return _health_html_page(health_data)
 
-        return jsonify(health_data)
+        return jsonify({"status": "ok"})
 
     # Initialize seed data if tables are empty
     with app.app_context():

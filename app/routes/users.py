@@ -21,12 +21,21 @@ def validate_username(username):
 
 @users_bp.route("/users", methods=["GET"])
 def list_users():
+    query = User.select()
+
+    # Support filtering
+    username = request.args.get('username')
+    email = request.args.get('email')
+    if username:
+        query = query.where(User.username == username)
+    if email:
+        query = query.where(User.email == email)
+
+    total = query.count()
+
     # Support pagination
     page = request.args.get('page', type=int)
     per_page = request.args.get('per_page', type=int)
-    
-    query = User.select()
-    total = query.count()
     
     if page and per_page:
         query = query.paginate(page, per_page)
@@ -141,19 +150,19 @@ def create_users_bulk():
             import io
             stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
             csv_reader = csv.DictReader(stream)
-            created = []
+            imported = 0
             for row in csv_reader:
                 try:
-                    user = User.create(
+                    User.get_or_create(
                         username=row.get('username', f"user_{User.select().count()}"),
-                        email=row.get('email', f"user{User.select().count()}@example.com")
+                        defaults={'email': row.get('email', f"user{User.select().count()}@example.com")}
                     )
-                    created.append(model_to_dict(user))
+                    imported += 1
                 except Exception:
                     pass
             return jsonify({
-                "message": f"Created {len(created)} users from CSV",
-                "row_count": len(created)
+                "message": f"Created {imported} users from CSV",
+                "row_count": imported
             }), 201
 
     # Handle form data

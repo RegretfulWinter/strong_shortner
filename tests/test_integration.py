@@ -118,7 +118,7 @@ class TestURLIntegration:
             'title': 'User URL'
         })
         assert response.status_code == 201
-        assert response.json['user_id'] == user_id
+        assert response.json['user'] == user_id
     
     def test_deactivate_url(self, client):
         """Test deactivating a URL"""

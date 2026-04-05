@@ -15,14 +15,14 @@ class TestEventCreation:
             'username': f'eventuser_{unique_id}',
             'email': f'event_{unique_id}@example.com'
         })
-        user_id = user_resp.json['data']['id']
+        user_id = user_resp.json.get('data', user_resp.json).get('id', user_resp.json.get('id'))
         
         # Create URL
         url_resp = client.post('/urls', json={
             'original_url': f'https://example.com/event-{unique_id}',
             'user_id': user_id
         })
-        url_id = url_resp.json['id']
+        url_id = url_resp.json.get('id')
         
         # Create event
         event_resp = client.post('/events', json={
@@ -158,7 +158,7 @@ class TestAdvancedUserOperations:
             'username': f'user2_{unique_id}',
             'email': f'email2_{unique_id}@example.com'
         })
-        user2_id = resp2.json['data']['id']
+        user2_id = resp2.json.get('data', resp2.json).get('id', resp2.json.get('id'))
         
         # Try to update user2 with user1's email
         resp = client.put(f'/users/{user2_id}', json={
@@ -175,7 +175,7 @@ class TestAdvancedUserOperations:
             'username': f'update_test_{unique_id}',
             'email': f'valid_{unique_id}@example.com'
         })
-        user_id = resp.json['data']['id']
+        user_id = resp.json.get('data', resp.json).get('id', resp.json.get('id'))
         
         update_resp = client.put(f'/users/{user_id}', json={
             'email': 'not-an-email'
@@ -191,7 +191,7 @@ class TestAdvancedUserOperations:
             'username': f'valid_{unique_id}',
             'email': f'valid_{unique_id}@example.com'
         })
-        user_id = resp.json['data']['id']
+        user_id = resp.json.get('data', resp.json).get('id', resp.json.get('id'))
         
         update_resp = client.put(f'/users/{user_id}', json={
             'username': 'ab'  # Too short

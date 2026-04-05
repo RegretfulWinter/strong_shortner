@@ -3,9 +3,20 @@ Unit Tests for Reliability Quest - Silver/Gold Tier
 Test individual functions in isolation
 """
 import pytest
+import time
 from app.models.user import User
 from app.models.url import URL
 from app.models.event import Event
+
+
+@pytest.fixture(autouse=True)
+def clean_database(app):
+    """Clean database before each test"""
+    with app.app_context():
+        # Delete all test data
+        Event.delete().execute()
+        URL.delete().execute()
+        User.delete().execute()
 
 
 class TestUserModel:
@@ -35,15 +46,17 @@ class TestUserModel:
     def test_user_update(self, app):
         """Test updating user fields"""
         with app.app_context():
+            unique_id = str(int(time.time() * 1000))[-6:]
             user = User.create(
-                username='update_test',
+                username=f'update_test_{unique_id}',
                 email='update@example.com'
             )
-            user.username = 'updated_username'
+            new_username = f'updated_username_{unique_id}'
+            user.username = new_username
             user.save()
             
             fetched = User.get_by_id(user.id)
-            assert fetched.username == 'updated_username'
+            assert fetched.username == new_username
     
     def test_user_delete(self, app):
         """Test deleting a user"""
@@ -65,20 +78,22 @@ class TestURLModel:
     def test_url_creation(self, app):
         """Test creating a URL"""
         with app.app_context():
+            unique_id = str(int(time.time() * 1000))[-6:]
             url = URL.create(
-                short_code='unit123',
+                short_code=f'unit{unique_id}',
                 original_url='https://example.com/unit-test',
                 title='Unit Test URL'
             )
             assert url.id is not None
-            assert url.short_code == 'unit123'
+            assert url.short_code == f'unit{unique_id}'
             assert url.is_active == True
     
     def test_url_deactivation(self, app):
         """Test deactivating a URL"""
         with app.app_context():
+            unique_id = str(int(time.time() * 1000))[-6:]
             url = URL.create(
-                short_code='deact123',
+                short_code=f'deact{unique_id}',
                 original_url='https://example.com/deactivate',
                 is_active=True
             )

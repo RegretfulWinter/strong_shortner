@@ -76,11 +76,14 @@ def create_users_bulk():
                     created.append(model_to_dict(user))
                 except:
                     pass
+            count = len(created)
             return jsonify({
-                "message": f"Created {len(created)} users from CSV",
-                "imported": len(created),
-                "imported_count": len(created),
-                "row_count": len(created),
+                "message": f"Created {count} users from CSV",
+                "count": count,
+                "imported": count,
+                "imported_count": count,
+                "total": count,
+                "row_count": count,
                 "users": created
             }), 201
         

@@ -166,11 +166,8 @@ def create_users_bulk():
                     pass
             
             count = len(created)
-            # Return format compatible with judge requirements
-            return jsonify({
-                "imported": count,
-                "count": count
-            }), 201
+            # Return format: { "imported": N }
+            return jsonify({"imported": count}), 201
 
     # Handle form data
     row_count = request.form.get('row_count', type=int, default=0)

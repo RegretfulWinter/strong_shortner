@@ -201,6 +201,11 @@ def update_url(url_id):
 def delete_url(url_id):
     try:
         url = URL.get_by_id(url_id)
+        
+        # Delete related events first (foreign key constraint)
+        from app.models.event import Event
+        Event.delete().where(Event.url == url_id).execute()
+        
         url.delete_instance()
         return jsonify({"message": "URL deleted"}), 200
     except URL.DoesNotExist:

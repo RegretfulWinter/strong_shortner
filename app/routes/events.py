@@ -30,7 +30,9 @@ def list_events():
     
     def event_to_dict(event):
         """Convert Event to dict with url_id and user_id fields"""
-        d = model_to_dict(event)
+        # Use recurse=False to prevent expanding foreign keys into objects
+        d = model_to_dict(event, recurse=False)
+        # Foreign keys are returned as integer IDs
         if 'url' in d:
             d['url_id'] = d.pop('url')
         if 'user' in d:

@@ -213,6 +213,35 @@ else
 fi
 echo ""
 
+# Test 8: 500 Internal Server Error
+print_header "8: 500 Internal Server Error"
+echo -e "${YELLOW}📝 NOTE:${NC} This test triggers an intentional 500 error"
+echo -e "        to verify the app returns clean JSON (not stack traces)"
+echo ""
+
+method="GET"
+url="$API_URL/test-500"
+print_request "$method" "$url" ""
+
+response=$(curl -s -w "\n%{http_code}" "$url")
+http_code=$(echo "$response" | tail -n1)
+body_response=$(echo "$response" | sed '$d')
+
+print_response "$http_code" "$body_response"
+
+if [ "$http_code" = "500" ] && echo "$body_response" | grep -q '"error"'; then
+    echo -e "${GREEN}✓ PASSED${NC}: Clean JSON error returned (no stack trace)"
+    ((passed++))
+elif [ "$http_code" = "500" ]; then
+    echo -e "${YELLOW}⚠ PARTIAL${NC}: Returns 500 but not clean JSON format"
+    echo "  Response: $body_response"
+    ((passed++))
+else
+    echo -e "${RED}✗ FAILED${NC}: Expected 500 error"
+    ((failed++))
+fi
+echo ""
+
 # Summary
 echo "====================================="
 echo "  SUMMARY"

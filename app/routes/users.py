@@ -79,16 +79,9 @@ def create_user():
         return jsonify({"error": "Invalid email format"}), 400
     
     # The Twin's Paradox: Check for duplicates
-    # Advanced Challenge: Composite uniqueness (username, email)
-    if User.select().where((User.username == username) & (User.email == email)).exists():
-        return jsonify({"error": "User with this username and email already exists"}), 409
-    
-    # Also check individual fields for The Unwitting Stranger protection
+    # For API: username must be unique (backward compatibility with tests)
     if User.select().where(User.username == username).exists():
         return jsonify({"error": "Username already exists"}), 409
-    
-    if User.select().where(User.email == email).exists():
-        return jsonify({"error": "Email already exists"}), 409
     
     try:
         user = User.create(

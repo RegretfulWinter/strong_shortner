@@ -7,6 +7,9 @@ from app.models.url import URL
 
 class Event(BaseModel):
     id = AutoField()  # Auto increment primary key
+    
+    class Meta:
+        table_name = 'events'
     url = ForeignKeyField(URL, backref='events', null=True)
     user = ForeignKeyField(User, backref='events', null=True)
     event_type = CharField()  # e.g., "created"

@@ -6,6 +6,9 @@ from app.models.user import User
 
 class URL(BaseModel):
     id = AutoField()  # Auto increment primary key
+    
+    class Meta:
+        table_name = 'urls'
     user = ForeignKeyField(User, backref='urls', null=True)
     short_code = CharField(unique=True)
     original_url = CharField()

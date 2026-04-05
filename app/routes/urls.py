@@ -36,8 +36,11 @@ def list_urls():
     per_page = request.args.get('per_page', type=int)
     
     def url_to_dict(url):
-        return model_to_dict(url, recurse=False)
-    
+        d = model_to_dict(url, recurse=False)
+        if 'user' in d:
+            d['user_id'] = d.pop('user')
+        return d
+
     if page and per_page:
         query = query.paginate(page, per_page)
         urls = list(query)
@@ -47,7 +50,7 @@ def list_urls():
             "page": page,
             "per_page": per_page
         })
-    
+
     urls = list(query)
     return jsonify([url_to_dict(u) for u in urls])
 
@@ -56,7 +59,10 @@ def list_urls():
 def get_url(url_id):
     try:
         url = URL.get_by_id(url_id)
-        return jsonify(model_to_dict(url, recurse=False))
+        d = model_to_dict(url, recurse=False)
+        if 'user' in d:
+            d['user_id'] = d.pop('user')
+        return jsonify(d)
     except URL.DoesNotExist:
         return jsonify({"error": "URL not found"}), 404
 
@@ -93,8 +99,11 @@ def create_url():
         original_url=data['original_url'],
         title=data.get('title', '')
     )
-    
-    return jsonify(model_to_dict(url, recurse=False)), 201
+
+    d = model_to_dict(url, recurse=False)
+    if 'user' in d:
+        d['user_id'] = d.pop('user')
+    return jsonify(d), 201
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["PUT"])
@@ -111,8 +120,11 @@ def update_url(url_id):
     
     url.updated_at = datetime.now()
     url.save()
-    
-    return jsonify(model_to_dict(url, recurse=False))
+
+    d = model_to_dict(url, recurse=False)
+    if 'user' in d:
+        d['user_id'] = d.pop('user')
+    return jsonify(d)
 
 
 @urls_bp.route("/urls/<int:url_id>", methods=["DELETE"])

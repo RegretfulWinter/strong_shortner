@@ -29,7 +29,12 @@ def list_events():
     total = query.count()
 
     def event_to_dict(event):
-        return model_to_dict(event, recurse=False)
+        d = model_to_dict(event, recurse=False)
+        if 'url' in d:
+            d['url_id'] = d.pop('url')
+        if 'user' in d:
+            d['user_id'] = d.pop('user')
+        return d
 
     # Support pagination
     page = request.args.get('page', type=int)
@@ -94,4 +99,9 @@ def create_event():
         details=details
     )
 
-    return jsonify(model_to_dict(event, recurse=False)), 201
+    d = model_to_dict(event, recurse=False)
+    if 'url' in d:
+        d['url_id'] = d.pop('url')
+    if 'user' in d:
+        d['user_id'] = d.pop('user')
+    return jsonify(d), 201

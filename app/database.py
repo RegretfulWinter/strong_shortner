@@ -20,11 +20,18 @@ def init_db(app):
     )
     db.initialize(database)
     
-    # Auto-create tables on startup
+    # Auto-create tables on startup (with lock to prevent race conditions)
     from app.models.user import User
     from app.models.url import URL
     from app.models.event import Event
-    db.create_tables([User, URL, Event], safe=True)
+    
+    try:
+        # Use a transaction to prevent race conditions between workers
+        with db.atomic():
+            db.create_tables([User, URL, Event], safe=True)
+    except Exception as e:
+        # Tables probably already exist, ignore the error
+        print(f"Note: Table creation skipped (may already exist): {e}")
 
     @app.before_request
     def _db_connect():

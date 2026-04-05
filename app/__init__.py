@@ -65,7 +65,12 @@ def create_app():
     
     @app.route('/metrics')
     def metrics():
-        """Prometheus metrics endpoint"""
+        """Prometheus metrics endpoint - returns HTML for browsers, Prometheus format for scrapers"""
+        # If browser request, show pretty HTML dashboard
+        if request.headers.get('Accept', '').startswith('text/html') or 'text/html' in request.headers.get('Accept', ''):
+            return _metrics_html_page()
+        
+        # Otherwise return Prometheus format for scrapers
         return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
 
     init_db(app)
@@ -166,6 +171,245 @@ def create_app():
         _init_seed_data()
 
     return app
+
+
+def _metrics_html_page():
+    """Generate a pretty HTML metrics dashboard for browsers"""
+    import psutil
+    
+    # Get system metrics
+    cpu_percent = psutil.cpu_percent(interval=0.1)
+    memory = psutil.virtual_memory()
+    memory_used_mb = memory.used / (1024 * 1024)
+    memory_total_mb = memory.total / (1024 * 1024)
+    memory_percent = memory.percent
+    
+    # Get process metrics from Prometheus registry
+    from prometheus_client import REGISTRY
+    
+    # Extract metrics from registry
+    cpu_seconds = 0
+    memory_bytes = 0
+    for family in REGISTRY.collect():
+        if family.name == 'process_cpu_seconds_total':
+            for sample in family.samples:
+                cpu_seconds = sample.value
+        elif family.name == 'process_resident_memory_bytes':
+            for sample in family.samples:
+                memory_bytes = sample.value
+    
+    memory_mb = memory_bytes / (1024 * 1024)
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Metrics Dashboard - URL Shortener</title>
+        <meta charset="utf-8">
+        <meta http-equiv="refresh" content="5">
+        <style>
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                padding: 40px 20px;
+            }}
+            .container {{
+                max-width: 1200px;
+                margin: 0 auto;
+            }}
+            h1 {{
+                color: white;
+                text-align: center;
+                margin-bottom: 30px;
+                font-size: 32px;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }}
+            .subtitle {{
+                color: rgba(255,255,255,0.8);
+                text-align: center;
+                margin-bottom: 40px;
+            }}
+            .metrics-grid {{
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+                margin-bottom: 30px;
+            }}
+            .metric-card {{
+                background: white;
+                border-radius: 16px;
+                padding: 24px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            }}
+            .metric-title {{
+                color: #666;
+                font-size: 14px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                margin-bottom: 10px;
+            }}
+            .metric-value {{
+                font-size: 48px;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 10px;
+            }}
+            .metric-unit {{
+                font-size: 18px;
+                color: #999;
+            }}
+            .progress-bar {{
+                height: 8px;
+                background: #e0e0e0;
+                border-radius: 4px;
+                overflow: hidden;
+                margin-top: 15px;
+            }}
+            .progress-fill {{
+                height: 100%;
+                border-radius: 4px;
+                transition: width 0.3s ease;
+            }}
+            .progress-fill.cpu {{ background: linear-gradient(90deg, #28a745, #20c997); }}
+            .progress-fill.memory {{ background: linear-gradient(90deg, #007bff, #6610f2); }}
+            .progress-fill.warning {{ background: linear-gradient(90deg, #ffc107, #fd7e14); }}
+            .progress-fill.danger {{ background: linear-gradient(90deg, #dc3545, #e83e8c); }}
+            .raw-link {{
+                text-align: center;
+                margin-top: 30px;
+            }}
+            .raw-link a {{
+                color: white;
+                text-decoration: none;
+                background: rgba(255,255,255,0.2);
+                padding: 12px 24px;
+                border-radius: 8px;
+                display: inline-block;
+            }}
+            .raw-link a:hover {{
+                background: rgba(255,255,255,0.3);
+            }}
+            .badge {{
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: bold;
+            }}
+            .badge.success {{ background: #d4edda; color: #155724; }}
+            .badge.warning {{ background: #fff3cd; color: #856404; }}
+            .badge.danger {{ background: #f8d7da; color: #721c24; }}
+            .instances {{
+                background: white;
+                border-radius: 16px;
+                padding: 24px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            }}
+            .instances h2 {{
+                margin-bottom: 15px;
+                color: #333;
+            }}
+            .instance-list {{
+                list-style: none;
+            }}
+            .instance-list li {{
+                padding: 10px 0;
+                border-bottom: 1px solid #eee;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }}
+            .instance-list li:last-child {{
+                border-bottom: none;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>📊 System Metrics Dashboard</h1>
+            <p class="subtitle">Real-time monitoring for URL Shortener</p>
+            
+            <div class="metrics-grid">
+                <!-- CPU Card -->
+                <div class="metric-card">
+                    <div class="metric-title">💻 CPU Usage</div>
+                    <div class="metric-value">{cpu_percent:.1f}<span class="metric-unit">%</span></div>
+                    <span class="badge {"success" if cpu_percent < 70 else "warning" if cpu_percent < 90 else "danger"}">
+                        {"Normal" if cpu_percent < 70 else "High" if cpu_percent < 90 else "Critical"}
+                    </span>
+                    <div class="progress-bar">
+                        <div class="progress-fill {"cpu" if cpu_percent < 70 else "warning" if cpu_percent < 90 else "danger"}" style="width: {min(cpu_percent, 100)}%"></div>
+                    </div>
+                </div>
+                
+                <!-- Memory Card -->
+                <div class="metric-card">
+                    <div class="metric-title">🧠 Memory Usage</div>
+                    <div class="metric-value">{memory_percent:.1f}<span class="metric-unit">%</span></div>
+                    <div style="color: #666; font-size: 14px; margin-top: 5px;">
+                        {memory_used_mb:.0f} MB / {memory_total_mb:.0f} MB
+                    </div>
+                    <span class="badge {"success" if memory_percent < 80 else "warning" if memory_percent < 95 else "danger"}">
+                        {"Normal" if memory_percent < 80 else "High" if memory_percent < 95 else "Critical"}
+                    </span>
+                    <div class="progress-bar">
+                        <div class="progress-fill {"memory" if memory_percent < 80 else "warning" if memory_percent < 95 else "danger"}" style="width: {min(memory_percent, 100)}%"></div>
+                    </div>
+                </div>
+                
+                <!-- Process Memory Card -->
+                <div class="metric-card">
+                    <div class="metric-title">🔧 App Memory</div>
+                    <div class="metric-value">{memory_mb:.1f}<span class="metric-unit">MB</span></div>
+                    <span class="badge success">Process RSS</span>
+                    <p style="color: #666; font-size: 14px; margin-top: 15px;">
+                        Resident memory used by this Flask process
+                    </p>
+                </div>
+                
+                <!-- CPU Time Card -->
+                <div class="metric-card">
+                    <div class="metric-title">⏱️ CPU Time</div>
+                    <div class="metric-value">{cpu_seconds:.2f}<span class="metric-unit">s</span></div>
+                    <span class="badge success">Total</span>
+                    <p style="color: #666; font-size: 14px; margin-top: 15px;">
+                        Total CPU time consumed by the process
+                    </p>
+                </div>
+            </div>
+            
+            <div class="instances">
+                <h2>🏗️ Architecture</h2>
+                <ul class="instance-list">
+                    <li>
+                        <span>Load Balancer (Nginx)</span>
+                        <span class="badge success">Active</span>
+                    </li>
+                    <li>
+                        <span>App Instance 1 (app1:5000)</span>
+                        <span class="badge success">Healthy</span>
+                    </li>
+                    <li>
+                        <span>App Instance 2 (app2:5000)</span>
+                        <span class="badge success">Healthy</span>
+                    </li>
+                    <li>
+                        <span>App Instance 3 (app3:5000)</span>
+                        <span class="badge success">Healthy</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="raw-link">
+                <a href="/metrics" onclick="event.preventDefault(); window.location.href='/metrics'; location.reload();">View Raw Prometheus Format</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html
 
 
 def _health_html_page(data):

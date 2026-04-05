@@ -148,25 +148,40 @@ def create_users_bulk():
             import io
             import time
             import random
-            stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
+            
+            content = file.stream.read().decode("UTF8")
+            stream = io.StringIO(content, newline=None)
+            
+            # Debug: count lines
+            lines = content.strip().split('\n')
+            print(f"CSV total lines: {len(lines)}")
+            
             csv_reader = csv.DictReader(stream)
             created = []
+            failed = []
             timestamp = int(time.time())
             random_suffix = random.randint(1000, 9999)
             
             for i, row in enumerate(csv_reader):
                 try:
-                    # Use unique identifiers to avoid conflicts
-                    unique_id = f"{timestamp}_{random_suffix}_{i}"
-                    username = row.get('username', f"csv_{unique_id}")
-                    email = row.get('email', f"csv_{unique_id}@example.com")
+                    # Use CSV data directly, no modification
+                    username = row.get('username', '').strip()
+                    email = row.get('email', '').strip()
+                    
+                    if not username or not email:
+                        failed.append(f"Row {i}: empty username or email")
+                        continue
+                    
                     user = User.create(username=username, email=email)
                     created.append(model_to_dict(user))
-                except Exception:
-                    pass
+                except Exception as e:
+                    failed.append(f"Row {i} ({username}): {e}")
+            
+            print(f"Created: {len(created)}, Failed: {len(failed)}")
+            if failed:
+                print(f"First few failures: {failed[:5]}")
             
             count = len(created)
-            # Return format: { "imported": N }
             return jsonify({"imported": count}), 201
 
     # Handle form data

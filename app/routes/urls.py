@@ -72,8 +72,17 @@ def get_url(url_id):
 
 @urls_bp.route("/urls", methods=["POST"])
 def create_url():
+    # The Fractured Vessel: Validate content type
+    if not request.is_json:
+        return jsonify({"error": "Content-Type must be application/json"}), 415
+    
     data = request.get_json()
-    if not data or 'original_url' not in data:
+    
+    # The Deceitful Scroll: Validate data is a proper object
+    if not data or not isinstance(data, dict):
+        return jsonify({"error": "Invalid request body"}), 400
+    
+    if 'original_url' not in data:
         return jsonify({"error": "Original URL is required"}), 400
     
     user_id = data.get('user_id')
@@ -136,8 +145,14 @@ def delete_url(url_id):
 def redirect_short_url(short_code):
     """Redirect short code to original URL"""
     try:
-        url = URL.get(URL.short_code == short_code, URL.is_active == True)
-        # Record event
+        # First try to get the URL regardless of is_active status
+        url = URL.get(URL.short_code == short_code)
+        
+        # The Slumbering Guide: Check if URL is active
+        if not url.is_active:
+            return jsonify({"error": "Short URL is inactive"}), 410
+        
+        # The Unseen Observer: Record event
         from app.models.event import Event
         Event.create(
             url=url.id,
@@ -147,4 +162,4 @@ def redirect_short_url(short_code):
         )
         return redirect(url.original_url, code=302)
     except URL.DoesNotExist:
-        return jsonify({"error": "Short URL not found or inactive"}), 404
+        return jsonify({"error": "Short URL not found"}), 404

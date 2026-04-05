@@ -1,8 +1,22 @@
 from flask import Blueprint, request, jsonify
 from playhouse.shortcuts import model_to_dict
 from app.models.user import User
+import re
 
 users_bp = Blueprint("users", __name__)
+
+
+def validate_email(email):
+    """Validate email format"""
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+
+def validate_username(username):
+    """Validate username - at least 3 characters, alphanumeric and underscore"""
+    if not username or len(username) < 3:
+        return False
+    return re.match(r'^[a-zA-Z0-9_]+$', username) is not None
 
 
 @users_bp.route("/users", methods=["GET"])
@@ -39,14 +53,42 @@ def get_user(user_id):
 
 @users_bp.route("/users", methods=["POST"])
 def create_user():
+    # The Fractured Vessel: Validate content type
+    if not request.is_json:
+        return jsonify({"error": "Content-Type must be application/json"}), 415
+    
     data = request.get_json()
-    if not data or 'username' not in data or 'email' not in data:
-        return jsonify({"error": "Missing required fields"}), 400
+    
+    # The Deceitful Scroll: Validate data is a proper object
+    if not data or not isinstance(data, dict):
+        return jsonify({"error": "Invalid request body"}), 400
+    
+    # The Unwitting Stranger: Validate required fields
+    if 'username' not in data or 'email' not in data:
+        return jsonify({"error": "Missing required fields: username, email"}), 400
+    
+    username = data['username']
+    email = data['email']
+    
+    # Validate username format
+    if not validate_username(username):
+        return jsonify({"error": "Invalid username format"}), 400
+    
+    # Validate email format
+    if not validate_email(email):
+        return jsonify({"error": "Invalid email format"}), 400
+    
+    # The Twin's Paradox: Check for duplicates
+    if User.select().where(User.username == username).exists():
+        return jsonify({"error": "Username already exists"}), 409
+    
+    if User.select().where(User.email == email).exists():
+        return jsonify({"error": "Email already exists"}), 409
     
     try:
         user = User.create(
-            username=data['username'],
-            email=data['email']
+            username=username,
+            email=email
         )
         return jsonify(model_to_dict(user)), 201
     except Exception as e:
@@ -142,9 +184,27 @@ def update_user(user_id):
     except User.DoesNotExist:
         return jsonify({"error": "User not found"}), 404
     
+    if not request.is_json:
+        return jsonify({"error": "Content-Type must be application/json"}), 415
+    
     data = request.get_json()
+    if not data or not isinstance(data, dict):
+        return jsonify({"error": "Invalid request body"}), 400
+    
     for field in ['username', 'email']:
         if field in data:
+            if field == 'username':
+                if not validate_username(data[field]):
+                    return jsonify({"error": "Invalid username format"}), 400
+                # Check for duplicate username
+                if User.select().where(User.username == data[field], User.id != user_id).exists():
+                    return jsonify({"error": "Username already exists"}), 409
+            elif field == 'email':
+                if not validate_email(data[field]):
+                    return jsonify({"error": "Invalid email format"}), 400
+                # Check for duplicate email
+                if User.select().where(User.email == data[field], User.id != user_id).exists():
+                    return jsonify({"error": "Email already exists"}), 409
             setattr(user, field, data[field])
     user.save()
     

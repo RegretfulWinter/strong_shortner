@@ -2,45 +2,48 @@
 """
 Structured JSON Logging Configuration
 Incident Response Quest - Bronze: The Watchtower
+Uses standard library only (no external deps)
 """
 
 import json
 import logging
 import sys
 from datetime import datetime, timezone
-from pythonjsonlogger import jsonlogger
 
 
-class CustomJsonFormatter(jsonlogger.JsonFormatter):
-    """Custom JSON formatter for structured logging"""
+class JsonFormatter(logging.Formatter):
+    """Simple JSON formatter using standard library"""
     
-    def add_fields(self, log_record, record, message_dict):
-        super(CustomJsonFormatter, self).add_fields(log_record, record, message_dict)
+    def format(self, record):
+        log_data = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": record.levelname,
+            "component": record.name,
+            "msg": record.getMessage(),
+        }
         
-        # Add timestamp in ISO 8601 format
-        log_record['timestamp'] = datetime.now(timezone.utc).isoformat()
-        
-        # Add log level
-        log_record['level'] = record.levelname
-        
-        # Add component/module
-        log_record['component'] = record.name
-        
-        # Add function name
+        # Add extra fields if available
         if hasattr(record, 'funcName'):
-            log_record['function'] = record.funcName
+            log_data['function'] = record.funcName
         
-        # Add correlation ID if available (for tracing requests)
-        log_record['correlation_id'] = getattr(record, 'correlation_id', 'N/A')
+        # Add any extra attributes (avoid reserved keys)
+        reserved = {'name', 'msg', 'args', 'levelname', 'levelno', 
+                   'pathname', 'filename', 'module', 'exc_info', 
+                   'exc_text', 'stack_info', 'lineno', 'funcName', 
+                   'created', 'msecs', 'relativeCreated', 'thread', 
+                   'threadName', 'processName', 'process', 'message'}
+        for key, value in record.__dict__.items():
+            if key not in reserved:
+                log_data[key] = value
+        
+        return json.dumps(log_data)
 
 
 def setup_logging(log_level=logging.INFO):
     """Setup structured JSON logging for the application"""
     
     # Create formatter
-    formatter = CustomJsonFormatter(
-        '%(timestamp)s %(level)s %(component)s %(message)s'
-    )
+    formatter = JsonFormatter()
     
     # Create console handler
     console_handler = logging.StreamHandler(sys.stdout)

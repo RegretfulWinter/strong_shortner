@@ -39,7 +39,7 @@ def init_db(app):
         # Tables probably already exist, ignore the error
         logger.info("Database tables already exist", extra={
             "component": "DB",
-            "message": "Table creation skipped",
+            "note": "Table creation skipped",
             "error": str(e)
         })
 

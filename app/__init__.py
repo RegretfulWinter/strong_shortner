@@ -39,13 +39,34 @@ def create_app():
     # Register custom URL converter
     app.url_map.converters['shortcode'] = ShortCodeConverter
     
-    # Initialize Prometheus metrics exporter
+    # Initialize Prometheus metrics endpoint
     # Incident Response Quest - Bronze: The Watchtower
-    from prometheus_flask_exporter import PrometheusMetrics
-    metrics = PrometheusMetrics(app)
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram, Info
+    import time
     
-    # Add default metrics for CPU, memory, etc.
-    metrics.info('app_info', 'URL Shortener Application', version='1.0.0')
+    # Create metrics
+    app_info = Info('app_info', 'URL Shortener Application')
+    app_info.info({'version': '1.0.0'})
+    
+    http_requests_total = Counter('flask_http_request_total', 'Total HTTP requests', ['method', 'status', 'endpoint'])
+    http_request_duration = Histogram('flask_http_request_duration_seconds', 'HTTP request duration', ['method', 'endpoint'])
+    
+    @app.before_request
+    def before_request():
+        request.start_time = time.time()
+    
+    @app.after_request
+    def after_request(response):
+        if hasattr(request, 'start_time'):
+            duration = time.time() - request.start_time
+            http_request_duration.labels(method=request.method, endpoint=request.endpoint or 'unknown').observe(duration)
+        http_requests_total.labels(method=request.method, status=response.status_code, endpoint=request.endpoint or 'unknown').inc()
+        return response
+    
+    @app.route('/metrics')
+    def metrics():
+        """Prometheus metrics endpoint"""
+        return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
 
     init_db(app)
 
@@ -412,6 +433,6 @@ def _init_seed_data():
     except Exception as e:
         logger.warning("Seed data initialization skipped", extra={
             "component": "DB",
-            "message": "May be normal on first run",
+            "note": "May be normal on first run",
             "error": str(e)
         })

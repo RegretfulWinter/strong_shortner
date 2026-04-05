@@ -49,11 +49,19 @@ curl -X POST http://45.63.124.31/users \
 ```
 **Result:** Validation error (app doesn't crash) ✓
 
-### 5. Non-existent Resource
+### 5. Non-existent Resource (404)
 ```bash
 curl http://45.63.124.31/users/999999
 ```
 **Result:** `{"error": "User not found"}` ✓
+
+### 6. Server Error (500)
+```bash
+curl http://45.63.124.31/__test/500
+```
+**Result:** `{"error": "Internal server error. Please try again later."}` ✓
+
+> **Note:** The `/__test/500` endpoint intentionally triggers a 500 error to demonstrate error handling. It returns clean JSON without stack traces.
 
 ## What "Graceful" Means
 

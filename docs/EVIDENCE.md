@@ -82,6 +82,22 @@ curl -X POST http://localhost:5000/users \
 }
 ```
 
+### 6. Internal Server Error (500)
+
+**Request:**
+```bash
+curl http://localhost:5000/__test/500
+```
+
+**Response (500 Internal Server Error):**
+```json
+{
+  "error": "Internal server error. Please try again later."
+}
+```
+
+> **Note:** Stack traces are logged server-side for debugging, but never exposed to users.
+
 ## Key Characteristics
 
 | Characteristic | Evidence |

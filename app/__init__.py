@@ -1,10 +1,13 @@
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 import datetime
 import os
 
 from app.database import init_db
 from app.routes import register_routes
+
+# Get the absolute path to the static directory
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 
 
 def create_app():
@@ -21,6 +24,17 @@ def create_app():
     # Register short URL redirect at app level
     from app.routes.urls import redirect_short_url
     app.add_url_rule('/<string:short_code>', 'redirect_short', redirect_short_url)
+
+    # Serve frontend static files
+    @app.route('/')
+    def index():
+        """Serve the frontend HTML page"""
+        return send_from_directory(STATIC_DIR, 'index.html')
+
+    @app.route('/<path:filename>')
+    def static_files(filename):
+        """Serve static files"""
+        return send_from_directory(STATIC_DIR, filename)
 
     @app.route("/health")
     def health():
@@ -302,11 +316,12 @@ def _init_seed_data():
     from app.models.user import User
     from app.models.url import URL
     from app.models.event import Event
+    import secrets
 
     try:
         # Check if we have any users
         if User.select().count() == 0:
-            # Create seed users
+            # Create seed users with API tokens
             users = [
                 {"username": "admin", "email": "admin@example.com"},
                 {"username": "testuser1", "email": "test1@example.com"},
@@ -314,7 +329,11 @@ def _init_seed_data():
             ]
             for u in users:
                 try:
-                    User.create(username=u["username"], email=u["email"])
+                    user = User.create(
+                        username=u["username"], 
+                        email=u["email"],
+                        api_token=secrets.token_urlsafe(32)
+                    )
                 except Exception:
                     pass
             print(f"Created {User.select().count()} seed users")

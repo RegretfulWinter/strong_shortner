@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        input[type="email"],
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input[type="email"]:focus,
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .hidden {
+            display: none;
+        }
+        .url-list {
+            margin-top: 20px;
+        }
+        .url-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+        .url-item .short {
+            font-weight: 600;
+            color: #667eea;
+        }
+        .url-item .long {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .token-display {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin-bottom: 20px;
+        }
+        .logout {
+            background: #dc3545;
+            margin-top: 20px;
+        }
+        .logout:hover {
+            box-shadow: 0 10px 20px rgba(220, 53, 69, 0.3);
+        }
+        .loading {
+            text-align: center;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="container">
+        <h1>🔗 URL Shortener</h1>
+        <p class="subtitle">Enter your email to get started</p>
+        
+        <div id="loginError" class="error hidden"></div>
+        <div id="loginSuccess" class="success hidden"></div>
+        
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" placeholder="you@example.com" required>
+        </div>
+        
+        <button id="loginBtn" onclick="login()">Get Access Token</button>
+        
+        <p style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
+            Demo: Try invalid email to see error handling
+        </p>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboardPage" class="container hidden">
+        <h1>My Dashboard</h1>
+        <p class="subtitle">Welcome! Create and manage your short URLs</p>
+        
+        <div class="token-display">
+            <strong>Your API Token:</strong><br>
+            <span id="userToken"></span>
+        </div>
+        
+        <div id="dashError" class="error hidden"></div>
+        <div id="dashSuccess" class="success hidden"></div>
+        
+        <div class="form-group">
+            <label for="longUrl">Long URL to Shorten</label>
+            <input type="text" id="longUrl" placeholder="https://www.example.com/very/long/url" required>
+        </div>
+        
+        <button id="shortenBtn" onclick="createShortUrl()">Create Short URL</button>
+        
+        <div class="url-list" id="urlList">
+            <h3 style="margin-bottom: 15px;">Your URLs</h3>
+            <div id="urlListContent">
+                <p style="color: #999; text-align: center;">No URLs yet</p>
+            </div>
+        </div>
+        
+        <button class="logout" onclick="logout()">Logout</button>
+        
+        <p style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
+            Demo: Try invalid URL or logout/login to test error handling
+        </p>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let userToken = localStorage.getItem('urlShortenerToken');
+        let userId = localStorage.getItem('urlShortenerUserId');
+
+        // Check if already logged in
+        if (userToken && userId) {
+            showDashboard();
+        }
+
+        function showError(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+
+        function showSuccess(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 3000);
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const btn = document.getElementById('loginBtn');
+            
+            if (!email) {
+                showError('loginError', 'Please enter an email address');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+
+            try {
+                // Try to find existing user by email
+                const usersResponse = await fetch(`${API_BASE}/users`);
+                const users = await usersResponse.json();
+                let user = users.find(u => u.email === email);
+
+                if (!user) {
+                    // Create new user
+                    const username = email.split('@')[0] + Math.floor(Math.random() * 1000);
+                    const createResponse = await fetch(`${API_BASE}/users`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, email })
+                    });
+                    
+                    if (!createResponse.ok) {
+                        const error = await createResponse.json();
+                        throw new Error(error.error || 'Failed to create user');
+                    }
+                    
+                    user = await createResponse.json();
+                    showSuccess('loginSuccess', 'New user created!');
+                } else {
+                    showSuccess('loginSuccess', 'Welcome back!');
+                }
+
+                // Generate/get API token
+                // For demo, we'll use a simple token generation
+                userToken = btoa(`${user.id}:${user.email}:${Date.now()}`);
+                userId = user.id;
+                
+                localStorage.setItem('urlShortenerToken', userToken);
+                localStorage.setItem('urlShortenerUserId', userId);
+                
+                setTimeout(showDashboard, 500);
+                
+            } catch (error) {
+                showError('loginError', error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Get Access Token';
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('dashboardPage').classList.remove('hidden');
+            document.getElementById('userToken').textContent = userToken;
+            loadUserUrls();
+        }
+
+        function logout() {
+            localStorage.removeItem('urlShortenerToken');
+            localStorage.removeItem('urlShortenerUserId');
+            userToken = null;
+            userId = null;
+            document.getElementById('dashboardPage').classList.add('hidden');
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('email').value = '';
+        }
+
+        async function createShortUrl() {
+            const longUrl = document.getElementById('longUrl').value;
+            const btn = document.getElementById('shortenBtn');
+            
+            if (!longUrl) {
+                showError('dashError', 'Please enter a URL');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+
+            try {
+                const response = await fetch(`${API_BASE}/urls`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        original_url: longUrl,
+                        user_id: parseInt(userId)
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to create short URL');
+                }
+
+                const data = await response.json();
+                showSuccess('dashSuccess', `Short URL created: ${window.location.origin}/${data.short_code}`);
+                document.getElementById('longUrl').value = '';
+                loadUserUrls();
+                
+            } catch (error) {
+                showError('dashError', error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Short URL';
+            }
+        }
+
+        async function loadUserUrls() {
+            try {
+                const response = await fetch(`${API_BASE}/urls?user_id=${userId}`);
+                if (!response.ok) throw new Error('Failed to load URLs');
+                
+                const urls = await response.json();
+                const container = document.getElementById('urlListContent');
+                
+                if (urls.length === 0) {
+                    container.innerHTML = '<p style="color: #999; text-align: center;">No URLs yet</p>';
+                    return;
+                }
+
+                container.innerHTML = urls.map(url => `
+                    <div class="url-item">
+                        <div class="short">${window.location.origin}/${url.short_code}</div>
+                        <div class="long">${url.original_url}</div>
+                        <div style="margin-top: 8px; font-size: 12px;">
+                            <span style="color: ${url.is_active ? '#28a745' : '#dc3545'};">
+                                ${url.is_active ? '✓ Active' : '✗ Inactive'}
+                            </span>
+                            <span style="color: #999; margin-left: 10px;">
+                                Clicks: ${url.click_count || 0}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Failed to load URLs:', error);
+            }
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('email')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+        document.getElementById('longUrl')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') createShortUrl();
+        });
+    </script>
+</body>
+</html>

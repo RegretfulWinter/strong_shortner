@@ -108,6 +108,20 @@ def create_url():
     if not data or not isinstance(data, dict):
         return jsonify({"error": "Invalid request body"}), 400
     
+    # Challenge 5: The Deceitful Scroll - Reject unexpected fields (nonsense disguised as structure)
+    allowed_fields = {'original_url', 'user_id', 'title', 'is_active'}
+    for field in data.keys():
+        if field not in allowed_fields:
+            return jsonify({"error": f"Unexpected field: {field}"}), 400
+    
+    # Challenge 5: The Deceitful Scroll - Validate field types
+    if 'title' in data and not isinstance(data['title'], str):
+        return jsonify({"error": "title must be a string"}), 400
+    if 'is_active' in data and not isinstance(data['is_active'], bool):
+        return jsonify({"error": "is_active must be a boolean"}), 400
+    if 'user_id' in data and not isinstance(data['user_id'], int):
+        return jsonify({"error": "user_id must be an integer"}), 400
+    
     if 'original_url' not in data:
         return jsonify({"error": "Original URL is required"}), 400
     

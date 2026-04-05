@@ -165,13 +165,24 @@ def create_users_bulk():
                     # Use CSV data directly without any modification
                     username = row.get('username', '').strip()
                     email = row.get('email', '').strip()
+                    created_at_str = row.get('created_at', '').strip()
                     
                     if not username or not email:
                         failed.append(f"Row {i}: empty username or email")
                         continue
                     
-                    # Create user as-is, allowing duplicates
-                    user = User.create(username=username, email=email)
+                    # Parse created_at from CSV if present
+                    from datetime import datetime
+                    if created_at_str:
+                        try:
+                            created_at = datetime.strptime(created_at_str, '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            created_at = datetime.now()
+                    else:
+                        created_at = datetime.now()
+                    
+                    # Create user with CSV timestamp (supports composite unique constraint)
+                    user = User.create(username=username, email=email, created_at=created_at)
                     created.append(model_to_dict(user))
                 except Exception as e:
                     failed.append(f"Row {i} ({username}): {e}")

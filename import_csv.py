@@ -2,6 +2,10 @@
 """
 Import seed data from CSV files
 Usage: python import_csv.py [users.csv] [urls.csv] [events.csv]
+
+NOTE: This script is for LOCAL DEVELOPMENT ONLY.
+For hackathon evaluation, seed data is automatically loaded by judges.
+Do not include CSV import in your Docker startup or CI/CD pipeline.
 """
 
 import sys

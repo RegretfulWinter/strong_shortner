@@ -136,6 +136,8 @@ GET  /metrics             # Prometheus metrics (Incident Quest)
 
 ## Quick Start
 
+### Local Development
+
 ```bash
 # Install dependencies
 uv sync
@@ -143,15 +145,27 @@ uv sync
 # Start services with Docker
 make docker-up
 
-# Initialize database
+# Initialize database (creates tables only, safe to run multiple times)
 docker-compose exec app python init_db.py
 
-# Import seed data
+# Import seed data (for local testing only)
 make import-csv
 
 # Test API
 curl http://localhost/health
 ```
+
+### ⚠️ Hackathon Evaluation Note
+
+> **For hackathon evaluation:** The judges automatically provision a PostgreSQL database with seed data pre-loaded. You **do not** need to import CSV files or seed the database. Your app should start and immediately connect to the existing database with data already present.
+>
+> The evaluation environment:
+> - Starts with a clean container
+> - PostgreSQL is pre-configured with seed data
+> - No caching between evaluations
+> - Tables are already created and populated
+>
+> Just make sure your app can connect to the database using environment variables.
 
 ## Available Make Commands
 

@@ -101,7 +101,8 @@ jobs:
           key: ${{ secrets.VULTR_SSH_KEY }}
           script: |
             cd /var/www/url-shortener
-            git pull origin main
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
+            git fetch origin
+            git reset --hard origin/main
+            docker compose down
+            docker compose up -d --build
             docker system prune -f

@@ -58,17 +58,15 @@ def list_events():
 @events_bp.route("/events", methods=["POST"])
 def create_event():
     """Create a new event - Challenge 6: The Fractured Vessel"""
-    # Challenge 6: The Fractured Vessel - Must arrive in proper vessel (application/json)
-    if not request.is_json:
-        return jsonify({"error": "Content-Type must be application/json"}), 415
-    
-    data = request.get_json()
-    
-    # Challenge 6: The Fractured Vessel - Reject shapeless mist (null/undefined)
-    if data is None:
-        return jsonify({"error": "Invalid JSON body"}), 400
-    
-    # Challenge 6: The Fractured Vessel - Reject loose string (not a JSON object)
+    # Challenge 6: The Fractured Vessel
+    # Use force=True to parse regardless of Content-Type,
+    # silent=True so we get None instead of an exception on bad JSON.
+    data = request.get_json(force=True, silent=True)
+
+    # Reject anything that is not a plain JSON object (dict):
+    # - None  → missing / unparseable body
+    # - str   → "thread" (a string instead of a chest/object)
+    # - list, int, bool, … → also wrong shape
     if not isinstance(data, dict):
         return jsonify({"error": "Request body must be a JSON object"}), 400
     

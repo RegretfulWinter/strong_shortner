@@ -1,6 +1,6 @@
 import random
 import string
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, redirect
 from playhouse.shortcuts import model_to_dict
 from datetime import datetime
 from app.models.url import URL
@@ -16,12 +16,24 @@ def generate_short_code(length=6):
 
 @urls_bp.route("/urls", methods=["GET"])
 def list_urls():
+    # Support filtering
+    user_id = request.args.get('user_id', type=int)
+    is_active = request.args.get('is_active')
+    
+    query = URL.select()
+    
+    if user_id:
+        query = query.where(URL.user == user_id)
+    
+    if is_active is not None:
+        is_active_bool = is_active.lower() in ['true', '1', 'yes']
+        query = query.where(URL.is_active == is_active_bool)
+    
+    total = query.count()
+    
     # Support pagination
     page = request.args.get('page', type=int)
     per_page = request.args.get('per_page', type=int)
-    
-    query = URL.select()
-    total = query.count()
     
     if page and per_page:
         query = query.paginate(page, per_page)
@@ -99,3 +111,22 @@ def delete_url(url_id):
         return jsonify({"message": "URL deleted"}), 200
     except URL.DoesNotExist:
         return jsonify({"error": "URL not found"}), 404
+
+
+# Short URL redirect - this must be registered at app level, not in blueprint
+@urls_bp.route("/<string:short_code>", methods=["GET"])
+def redirect_short_url(short_code):
+    """Redirect short code to original URL"""
+    try:
+        url = URL.get(URL.short_code == short_code, URL.is_active == True)
+        # Record event
+        from app.models.event import Event
+        Event.create(
+            url=url.id,
+            user=url.user,
+            event_type='click',
+            details=f'{{"short_code": "{short_code}"}}'
+        )
+        return redirect(url.original_url, code=302)
+    except URL.DoesNotExist:
+        return jsonify({"error": "Short URL not found or inactive"}), 404

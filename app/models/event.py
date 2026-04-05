@@ -1,4 +1,4 @@
-from peewee import CharField, DateTimeField, ForeignKeyField, IntegerField, TextField
+from peewee import CharField, DateTimeField, ForeignKeyField, AutoField, TextField
 from datetime import datetime
 from app.database import BaseModel
 from app.models.user import User
@@ -6,7 +6,7 @@ from app.models.url import URL
 
 
 class Event(BaseModel):
-    id = IntegerField(primary_key=True)  # 对应 CSV 的 id
+    id = AutoField()  # Auto increment primary key
     url = ForeignKeyField(URL, backref='events', null=True)
     user = ForeignKeyField(User, backref='events', null=True)
     event_type = CharField()  # e.g., "created"

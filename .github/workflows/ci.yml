@@ -147,12 +147,12 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
           sudo apt-get update
           sudo apt-get install -y k6
-          
+
       - name: Start services
         run: |
           docker compose up -d
           sleep 15
-          
+
       - name: Run load test (Bronze: 50 users)
         run: |
           k6 run --vus 50 --duration 30s tests/load_test_simple.js || true

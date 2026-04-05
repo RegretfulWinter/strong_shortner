@@ -4,7 +4,6 @@ from app.models.event import Event
 from app.models.url import URL
 from app.models.user import User
 import json
-import re
 
 events_bp = Blueprint("events", __name__)
 
@@ -31,9 +30,7 @@ def list_events():
     
     def event_to_dict(event):
         """Convert Event to dict with url_id and user_id fields"""
-        # Use recurse=False to prevent expanding foreign keys into objects
-        d = model_to_dict(event, recurse=False)
-        # Foreign keys are returned as integer IDs
+        d = model_to_dict(event)
         if 'url' in d:
             d['url_id'] = d.pop('url')
         if 'user' in d:
@@ -60,41 +57,14 @@ def list_events():
 
 @events_bp.route("/events", methods=["POST"])
 def create_event():
-    """Create a new event - Challenge 6: The Fractured Vessel"""
-    # Challenge 6: The Fractured Vessel - Must be proper JSON vessel
-    if not request.is_json:
-        return jsonify({"error": "Content-Type must be application/json"}), 415
-    
+    """Create a new event"""
     data = request.get_json()
-    
-    # Challenge 6: The Fractured Vessel - Reject shapeless mist (null, undefined)
-    if data is None:
-        return jsonify({"error": "Invalid JSON body"}), 400
-    
-    if not isinstance(data, dict):
-        return jsonify({"error": "Request body must be a JSON object"}), 400
-    
-    # Challenge 6: The Fractured Vessel - Reject malformed details (unexpected fields)
-    allowed_fields = {'event_type', 'url_id', 'user_id', 'details'}
-    for field in data.keys():
-        if field not in allowed_fields:
-            return jsonify({"error": f"Unexpected field: {field}"}), 400
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
     
     event_type = data.get('event_type')
     if not event_type:
         return jsonify({"error": "event_type is required"}), 400
-    
-    # Challenge 6: The Fractured Vessel - Validate proper format
-    if not isinstance(event_type, str) or len(event_type) < 1 or len(event_type) > 50:
-        return jsonify({"error": "Invalid event_type format"}), 400
-    
-    # Challenge 6: Validate field types to prevent malformed data
-    if 'url_id' in data and not isinstance(data['url_id'], int):
-        return jsonify({"error": "url_id must be an integer"}), 400
-    if 'user_id' in data and not isinstance(data['user_id'], int):
-        return jsonify({"error": "user_id must be an integer"}), 400
-    if 'details' in data and not isinstance(data['details'], (str, dict)):
-        return jsonify({"error": "details must be a string or object"}), 400
     
     url_id = data.get('url_id')
     user_id = data.get('user_id')

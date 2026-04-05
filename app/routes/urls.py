@@ -124,16 +124,18 @@ def create_url():
             return jsonify({"error": "User not found"}), 404
     
     # The Twin's Paradox: Check if exact same URL already exists for this user
-    existing = URL.select().where(
-        (URL.original_url == original_url) & 
-        (URL.user == user_id)
-    ).first()
-    if existing:
-        return jsonify({
-            "error": "URL already exists",
-            "short_code": existing.short_code,
-            "url": model_to_dict(existing, recurse=False)
-        }), 409
+    # Only check when user_id is specified; anonymous URLs (user_id=None) can have duplicates
+    if user_id:
+        existing = URL.select().where(
+            (URL.original_url == original_url) & 
+            (URL.user == user_id)
+        ).first()
+        if existing:
+            return jsonify({
+                "error": "URL already exists",
+                "short_code": existing.short_code,
+                "url": model_to_dict(existing, recurse=False)
+            }), 409
     
     short_code = generate_short_code()
     while URL.select().where(URL.short_code == short_code).exists():

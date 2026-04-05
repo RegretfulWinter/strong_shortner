@@ -41,15 +41,24 @@ def create_app():
     
     # Initialize Prometheus metrics endpoint
     # Incident Response Quest - Bronze: The Watchtower
-    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram, Info
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram, Info, REGISTRY
     import time
     
-    # Create metrics
-    app_info = Info('app_info', 'URL Shortener Application')
-    app_info.info({'version': '1.0.0'})
+    # Create metrics (handle duplicate registration in tests)
+    try:
+        app_info = Info('app_info', 'URL Shortener Application')
+        app_info.info({'version': '1.0.0'})
+    except ValueError:
+        # Metric already exists (e.g., in tests that recreate app)
+        pass
     
-    http_requests_total = Counter('flask_http_request_total', 'Total HTTP requests', ['method', 'status', 'endpoint'])
-    http_request_duration = Histogram('flask_http_request_duration_seconds', 'HTTP request duration', ['method', 'endpoint'])
+    try:
+        http_requests_total = Counter('flask_http_request_total', 'Total HTTP requests', ['method', 'status', 'endpoint'])
+        http_request_duration = Histogram('flask_http_request_duration_seconds', 'HTTP request duration', ['method', 'endpoint'])
+    except ValueError:
+        # Metrics already exist
+        http_requests_total = REGISTRY._names_to_collectors.get('flask_http_request_total')
+        http_request_duration = REGISTRY._names_to_collectors.get('flask_http_request_duration_seconds')
     
     @app.before_request
     def before_request():

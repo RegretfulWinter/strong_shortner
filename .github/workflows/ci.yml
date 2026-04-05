@@ -158,7 +158,7 @@ jobs:
           k6 run --vus 50 --duration 30s tests/load_test_simple.js || true
 
   deploy:
-    name: Deploy to Digital Ocean
+    name: Deploy to Vultr
     runs-on: ubuntu-latest
     needs: [test, docker-build]
     # 只有 main 分支且不是 PR 时才部署
@@ -167,12 +167,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy to Digital Ocean
+      - name: Deploy to Vultr
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.DO_HOST }}
-          username: ${{ secrets.DO_USER }}
-          key: ${{ secrets.DO_SSH_KEY }}
+          host: ${{ secrets.VULTR_HOST }}
+          username: ${{ secrets.VULTR_USER }}
+          key: ${{ secrets.VULTR_SSH_KEY }}
           script: |
             cd /var/www/url-shortener
             git pull origin main

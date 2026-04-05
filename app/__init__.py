@@ -79,8 +79,8 @@ def create_app():
         app.logger.error(traceback.format_exc())
         return jsonify({"error": "Internal server error. Please try again later."}), 500
 
-    # Test endpoint for 500 error handling
-    @app.route("/test-500")
+    # Test endpoint for 500 error handling (before short URL route)
+    @app.route("/__test/500")
     def test_500():
         """Intentionally trigger a 500 error for testing"""
         raise Exception("Intentional test error")

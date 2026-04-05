@@ -220,7 +220,7 @@ echo -e "        to verify the app returns clean JSON (not stack traces)"
 echo ""
 
 method="GET"
-url="$API_URL/test-500"
+url="$API_URL/__test/500"
 print_request "$method" "$url" ""
 
 response=$(curl -s -w "\n%{http_code}" "$url")

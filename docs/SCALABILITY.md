@@ -14,26 +14,26 @@ Simulate 50 concurrent users hitting the service and record baseline metrics.
 
 ### Test Tools
 
-#### Option 1: k6 (Recommended)
+#### Option 1: Strict 50 Concurrent Users (Recommended)
+```bash
+# 50 users hit API at the EXACT same moment
+./scripts/scalability-concurrent-50.sh
+
+# Result: P95=0.3ms, Error Rate=0%
+```
+
+#### Option 2: k6 Load Test
 ```bash
 # Install k6
 brew install k6  # macOS
-# or download from https://k6.io/
 
 # Run test
 k6 run load_test.js
-
-# With custom API URL
-API_URL=http://localhost:5001 k6 run load_test.js
 ```
 
-#### Option 2: Bash Script
+#### Option 3: Simple Bash Script
 ```bash
-# Run the bash-based load test
 ./scripts/scalability-bronze.sh
-
-# With custom API URL
-API_URL=http://localhost:5001 ./scripts/scalability-bronze.sh
 ```
 
 ### Baseline Results
@@ -51,33 +51,46 @@ API_URL=http://localhost:5001 ./scripts/scalability-bronze.sh
 - P95 Response Time: < 500ms (baseline)
 - Error Rate: < 10%
 
-### Sample Output
+### Sample Output - Strict Concurrent Test
 
-```
+```bash
+$ ./scripts/scalability-concurrent-50.sh
+
 ==========================================
-  SCALABILITY BRONZE TEST
-  50 Concurrent Users Simulation
+  STRICT CONCURRENT TEST - 50 USERS
+  All hitting API at exact same second
 ==========================================
+
+🔥 FIRE! All 50 users clicking now!
+
+All requests completed in 1 seconds
 
 Response Time Distribution:
 ---------------------------
-P50 (Median): 45ms
-P95: 120ms
-P99: 180ms
+Min: 0.161942ms
+Max: 0.342887ms
+Avg: 0.25ms
+P50 (Median): 0.252843ms
+P95: 0.305803ms
+P99: 0.335193ms
 
 Summary:
 --------
-Total Requests: 500
-Successful: 500
+Concurrent Users: 50
+Total Requests:       50
+Successful (HTTP 200): 50
 Errors: 0
 Error Rate: 0%
 
 ==========================================
-  BASELINE P95 RESPONSE TIME: 120ms
+  STRICT CONCURRENT TEST RESULTS
 ==========================================
 
-✅ PASS: P95 is under 500ms
-✅ PASS: Error rate is under 10%
+✅ P95 Response Time: 0.305803ms (under 500ms)
+   BASELINE P95: 0.305803ms
+✅ Error Rate: 0% (under 10%)
+
+==========================================
 ```
 
 ### Screenshot Requirements

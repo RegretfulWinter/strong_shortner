@@ -1,0 +1,555 @@
+openapi: 3.0.3
+info:
+  title: URL Shortener API
+  description: |
+    A simple URL shortener service with user management and event tracking.
+    
+    **Features:**
+    - URL shortening
+    - User management
+    - Event tracking
+    - Health monitoring
+  version: 1.0.0
+  contact:
+    name: URL Shortener Team
+
+servers:
+  - url: http://localhost:80
+    description: Local development
+  - url: http://45.63.124.31:80
+    description: Vultr Production
+
+paths:
+  # ==================== Health ====================
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the service is running properly
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+              example:
+                status: ok
+
+  # ==================== Users ====================
+  /users:
+    get:
+      tags:
+        - Users
+      summary: List all users
+      description: Get a list of all registered users
+      operationId: listUsers
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+              example:
+                - id: 1
+                  username: johndoe
+                  email: john@example.com
+                  created_at: "2024-01-15T10:30:00"
+                - id: 2
+                  username: janedoe
+                  email: jane@example.com
+                  created_at: "2024-01-16T14:20:00"
+
+    post:
+      tags:
+        - Users
+      summary: Create a new user
+      description: Register a new user with username and email
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+            example:
+              username: newuser
+              email: newuser@example.com
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                id: 3
+                username: newuser
+                email: newuser@example.com
+                created_at: "2024-01-17T09:00:00"
+        '400':
+          description: Missing required fields or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Missing required fields
+
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get user by ID
+      description: Retrieve a specific user by their ID
+      operationId: getUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                id: 1
+                username: johndoe
+                email: john@example.com
+                created_at: "2024-01-15T10:30:00"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: User not found
+
+    put:
+      tags:
+        - Users
+      summary: Update user
+      description: Update user information (username and/or email)
+      operationId: updateUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+            examples:
+              updateUsername:
+                summary: Update only username
+                value:
+                  username: updatedname
+              updateEmail:
+                summary: Update only email
+                value:
+                  email: newemail@example.com
+              updateBoth:
+                summary: Update both fields
+                value:
+                  username: updatedname
+                  email: newemail@example.com
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                id: 1
+                username: updatedname
+                email: newemail@example.com
+                created_at: "2024-01-15T10:30:00"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: User not found
+
+  # ==================== URLs ====================
+  /urls:
+    get:
+      tags:
+        - URLs
+      summary: List all URLs
+      description: Get a list of all shortened URLs
+      operationId: listUrls
+      responses:
+        '200':
+          description: List of URLs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/URL'
+              example:
+                - id: 1
+                  short_code: abc123
+                  original_url: https://example.com/very/long/url
+                  title: Example Site
+                  is_active: true
+                  created_at: "2024-01-15T10:30:00"
+                  updated_at: "2024-01-15T10:30:00"
+                  user: 1
+
+    post:
+      tags:
+        - URLs
+      summary: Create short URL
+      description: Create a new shortened URL with auto-generated short code
+      operationId: createUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/URLCreate'
+            examples:
+              minimal:
+                summary: Minimal request (only required field)
+                value:
+                  original_url: https://example.com
+              withUser:
+                summary: With user ID
+                value:
+                  original_url: https://example.com
+                  user_id: 1
+              complete:
+                summary: With all optional fields
+                value:
+                  original_url: https://example.com
+                  user_id: 1
+                  title: My Example Site
+      responses:
+        '201':
+          description: URL created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URL'
+              example:
+                id: 2
+                short_code: xYz789
+                original_url: https://example.com
+                title: My Example Site
+                is_active: true
+                created_at: "2024-01-17T09:00:00"
+                updated_at: "2024-01-17T09:00:00"
+                user: 1
+        '400':
+          description: Missing original_url or invalid user_id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missingField:
+                  summary: Missing required field
+                  value:
+                    error: Original URL is required
+                userNotFound:
+                  summary: User not found
+                  value:
+                    error: User not found
+
+  /urls/{urlId}:
+    get:
+      tags:
+        - URLs
+      summary: Get URL by ID
+      description: Retrieve a specific URL by its ID
+      operationId: getUrl
+      parameters:
+        - name: urlId
+          in: path
+          required: true
+          description: URL ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: URL found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URL'
+        '404':
+          description: URL not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: URL not found
+
+    put:
+      tags:
+        - URLs
+      summary: Update URL
+      description: Update URL information (title and/or is_active)
+      operationId: updateUrl
+      parameters:
+        - name: urlId
+          in: path
+          required: true
+          description: URL ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/URLUpdate'
+            examples:
+              updateTitle:
+                summary: Update title
+                value:
+                  title: New Title
+              deactivate:
+                summary: Deactivate URL
+                value:
+                  is_active: false
+              updateBoth:
+                summary: Update title and deactivate
+                value:
+                  title: New Title
+                  is_active: false
+      responses:
+        '200':
+          description: URL updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URL'
+        '404':
+          description: URL not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: URL not found
+
+  # ==================== Events ====================
+  /events:
+    get:
+      tags:
+        - Events
+      summary: List all events
+      description: Get all event logs ordered by timestamp (newest first)
+      operationId: listEvents
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+              example:
+                - id: 1
+                  event_type: created
+                  timestamp: "2024-01-17T09:00:00"
+                  details: '{"url_id": 1, "action": "shorten"}'
+                  url: 1
+                  user: 1
+                - id: 2
+                  event_type: accessed
+                  timestamp: "2024-01-17T09:05:00"
+                  details: '{"url_id": 1, "ip": "192.168.1.1"}'
+                  url: 1
+                  user: null
+
+# ==================== Components ====================
+components:
+  schemas:
+    # -------- User Schemas --------
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00"
+      required:
+        - id
+        - username
+        - email
+        - created_at
+
+    UserCreate:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+      required:
+        - username
+        - email
+
+    UserUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          example: newusername
+        email:
+          type: string
+          format: email
+          example: newemail@example.com
+
+    # -------- URL Schemas --------
+    URL:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        short_code:
+          type: string
+          example: abc123
+        original_url:
+          type: string
+          format: uri
+          example: https://example.com/very/long/url
+        title:
+          type: string
+          nullable: true
+          example: My Website
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00"
+        user:
+          type: integer
+          nullable: true
+          example: 1
+      required:
+        - id
+        - short_code
+        - original_url
+        - is_active
+        - created_at
+        - updated_at
+
+    URLCreate:
+      type: object
+      properties:
+        original_url:
+          type: string
+          format: uri
+          example: https://example.com
+        user_id:
+          type: integer
+          nullable: true
+          example: 1
+        title:
+          type: string
+          example: My Website
+      required:
+        - original_url
+
+    URLUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Updated Title
+        is_active:
+          type: boolean
+          example: false
+
+    # -------- Event Schemas --------
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        event_type:
+          type: string
+          example: created
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-17T09:00:00"
+        details:
+          type: string
+          nullable: true
+          example: '{"url_id": 1, "action": "shorten"}'
+        url:
+          type: integer
+          nullable: true
+          example: 1
+        user:
+          type: integer
+          nullable: true
+          example: 1
+      required:
+        - id
+        - event_type
+        - timestamp
+
+    # -------- Error Schema --------
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Something went wrong
+      required:
+        - error

@@ -16,7 +16,24 @@ def generate_short_code(length=6):
 
 @urls_bp.route("/urls", methods=["GET"])
 def list_urls():
-    urls = URL.select()
+    # Support pagination
+    page = request.args.get('page', type=int)
+    per_page = request.args.get('per_page', type=int)
+    
+    query = URL.select()
+    total = query.count()
+    
+    if page and per_page:
+        query = query.paginate(page, per_page)
+        urls = list(query)
+        return jsonify({
+            "items": [model_to_dict(u) for u in urls],
+            "total": total,
+            "page": page,
+            "per_page": per_page
+        })
+    
+    urls = list(query)
     return jsonify([model_to_dict(u) for u in urls])
 
 
@@ -72,3 +89,13 @@ def update_url(url_id):
     url.save()
     
     return jsonify(model_to_dict(url))
+
+
+@urls_bp.route("/urls/<int:url_id>", methods=["DELETE"])
+def delete_url(url_id):
+    try:
+        url = URL.get_by_id(url_id)
+        url.delete_instance()
+        return jsonify({"message": "URL deleted"}), 200
+    except URL.DoesNotExist:
+        return jsonify({"error": "URL not found"}), 404

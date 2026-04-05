@@ -78,9 +78,10 @@ def create_users_bulk():
                     pass
             return jsonify({
                 "message": f"Created {len(created)} users from CSV",
+                "imported": len(created),
                 "imported_count": len(created),
                 "row_count": len(created),
-                "users": created[:10]  # Return first 10
+                "users": created
             }), 201
         
         return jsonify({"message": "No users to create", "row_count": 0}), 201

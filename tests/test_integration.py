@@ -10,10 +10,12 @@ class TestUserIntegration:
     
     def test_create_and_get_user(self, client):
         """Test creating a user and retrieving it"""
+        import time
+        unique_id = str(int(time.time() * 1000))[-6:]
         # Create user
         response = client.post('/users', json={
-            'username': 'testuser_integration',
-            'email': 'test_integration@example.com'
+            'username': f'testuser_integration_{unique_id}',
+            'email': f'test_integration_{unique_id}@example.com'
         })
         assert response.status_code == 201
         user_id = response.json['id']
@@ -21,46 +23,58 @@ class TestUserIntegration:
         # Get user
         response = client.get(f'/users/{user_id}')
         assert response.status_code == 200
-        assert response.json['username'] == 'testuser_integration'
+        assert response.json['username'] == f'testuser_integration_{unique_id}'
     
     def test_create_user_duplicate_username(self, client):
         """Test creating user with duplicate username fails"""
+        import time
+        unique_id = str(int(time.time() * 1000))[-6:]
+        username = f'duplicate_test_{unique_id}'
+        
         # Create first user
-        client.post('/users', json={
-            'username': 'duplicate_test',
-            'email': 'first@example.com'
+        response = client.post('/users', json={
+            'username': username,
+            'email': f'first_{unique_id}@example.com'
         })
+        assert response.status_code == 201
         
         # Try to create duplicate
         response = client.post('/users', json={
-            'username': 'duplicate_test',
-            'email': 'second@example.com'
+            'username': username,
+            'email': f'second_{unique_id}@example.com'
         })
         assert response.status_code == 409
     
     def test_update_user(self, client):
         """Test updating a user"""
-        # Create user
+        import time
+        # Create user with unique username
+        unique_id = str(int(time.time() * 1000))[-6:]
         response = client.post('/users', json={
-            'username': 'update_test',
-            'email': 'update@example.com'
+            'username': f'update_test_{unique_id}',
+            'email': f'update_{unique_id}@example.com'
         })
+        assert response.status_code == 201
         user_id = response.json['id']
         
         # Update user
         response = client.put(f'/users/{user_id}', json={
-            'username': 'updated_name'
+            'username': f'updated_name_{unique_id}'
         })
         assert response.status_code == 200
-        assert response.json['username'] == 'updated_name'
+        assert response.json['username'] == f'updated_name_{unique_id}'
     
     def test_delete_user(self, client):
         """Test deleting a user"""
+        import time
+        unique_id = str(int(time.time() * 1000))[-6:]
+        
         # Create user
         response = client.post('/users', json={
-            'username': 'delete_test',
-            'email': 'delete@example.com'
+            'username': f'delete_test_{unique_id}',
+            'email': f'delete_{unique_id}@example.com'
         })
+        assert response.status_code == 201
         user_id = response.json['id']
         
         # Delete user
@@ -87,16 +101,20 @@ class TestURLIntegration:
     
     def test_create_url_with_user(self, client):
         """Test creating URL associated with a user"""
+        import time
+        unique_id = str(int(time.time() * 1000))[-6:]
+        
         # Create user first
         user_response = client.post('/users', json={
-            'username': 'url_owner',
-            'email': 'owner@example.com'
+            'username': f'url_owner_{unique_id}',
+            'email': f'owner_{unique_id}@example.com'
         })
+        assert user_response.status_code == 201
         user_id = user_response.json['id']
         
         # Create URL with user
         response = client.post('/urls', json={
-            'original_url': 'https://example.com/user-url',
+            'original_url': f'https://example.com/user-url-{unique_id}',
             'user_id': user_id,
             'title': 'User URL'
         })

@@ -37,8 +37,9 @@ def list_urls():
     
     def url_to_dict(url):
         """Convert URL to dict with user_id field"""
-        d = model_to_dict(url)
-        # Ensure user is represented as user_id
+        # Use recurse=False to prevent expanding foreign keys
+        d = model_to_dict(url, recurse=False)
+        # user field will be the integer ID, rename to user_id
         if 'user' in d:
             d['user_id'] = d.pop('user')
         return d
@@ -61,7 +62,7 @@ def list_urls():
 def get_url(url_id):
     try:
         url = URL.get_by_id(url_id)
-        d = model_to_dict(url)
+        d = model_to_dict(url, recurse=False)
         if 'user' in d:
             d['user_id'] = d.pop('user')
         return jsonify(d)
@@ -93,7 +94,7 @@ def create_url():
         title=data.get('title', '')
     )
     
-    d = model_to_dict(url)
+    d = model_to_dict(url, recurse=False)
     if 'user' in d:
         d['user_id'] = d.pop('user')
     return jsonify(d), 201
@@ -114,7 +115,7 @@ def update_url(url_id):
     url.updated_at = datetime.now()
     url.save()
     
-    d = model_to_dict(url)
+    d = model_to_dict(url, recurse=False)
     if 'user' in d:
         d['user_id'] = d.pop('user')
     return jsonify(d)

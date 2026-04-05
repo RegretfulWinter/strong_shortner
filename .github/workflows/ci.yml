@@ -103,6 +103,7 @@ jobs:
             cd /var/www/url-shortener
             git fetch origin
             git reset --hard origin/main
-            docker compose down
+            docker compose down -v  # -v removes volumes (database)
             docker compose up -d --build
+            sleep 10  # Wait for database to initialize
             docker system prune -f

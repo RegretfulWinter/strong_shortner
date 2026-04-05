@@ -63,6 +63,12 @@ def list_users():
 def get_user(user_id):
     try:
         user = User.get_by_id(user_id)
+        
+        # Challenge 3: The Slumbering Guide - Check if user is active
+        # If user has is_active field and is inactive, return 410 Gone
+        if hasattr(user, 'is_active') and not user.is_active:
+            return jsonify({"error": "User account is deactivated"}), 410
+        
         return jsonify(model_to_dict(user))
     except User.DoesNotExist:
         return jsonify({"error": "User not found"}), 404
@@ -70,13 +76,13 @@ def get_user(user_id):
 
 @users_bp.route("/users", methods=["POST"])
 def create_user():
-    # The Fractured Vessel: Validate content type
+    # Challenge 5: The Deceitful Scroll - Validate content type (proper vessel)
     if not request.is_json:
         return jsonify({"error": "Content-Type must be application/json"}), 415
     
     data = request.get_json()
     
-    # The Deceitful Scroll: Validate data is a proper object
+    # Challenge 5: The Deceitful Scroll - Validate data is a proper object
     if not data or not isinstance(data, dict):
         return jsonify({"error": "Invalid request body"}), 400
     

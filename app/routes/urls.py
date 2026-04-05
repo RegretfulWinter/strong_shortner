@@ -35,21 +35,9 @@ def validate_url(url):
 
 
 def generate_short_code(length=6):
-    """Generate unique short code - The Deceitful Scroll: ensure distinct marks"""
+    """Generate unique short code"""
     chars = string.ascii_letters + string.digits
-    # Ensure no ambiguous characters
-    chars = chars.replace('O', '').replace('0', '').replace('l', '').replace('1', '')
     return ''.join(random.choices(chars, k=length))
-
-
-def validate_short_code(short_code):
-    """The Deceitful Scroll: validate short code format"""
-    if not short_code or not isinstance(short_code, str):
-        return False
-    if len(short_code) < 4 or len(short_code) > 20:
-        return False
-    # Only alphanumeric
-    return re.match(r'^[a-zA-Z0-9]+$', short_code) is not None
 
 
 @urls_bp.route("/urls", methods=["GET"])
@@ -110,13 +98,13 @@ def get_url(url_id):
 
 @urls_bp.route("/urls", methods=["POST"])
 def create_url():
-    # The Fractured Vessel: Validate content type
+    # Challenge 5: The Deceitful Scroll - Validate content type
     if not request.is_json:
         return jsonify({"error": "Content-Type must be application/json"}), 415
     
     data = request.get_json()
     
-    # The Deceitful Scroll: Validate data is a proper object
+    # Challenge 5: The Deceitful Scroll - Validate data is a proper object
     if not data or not isinstance(data, dict):
         return jsonify({"error": "Invalid request body"}), 400
     
@@ -233,7 +221,7 @@ def redirect_short_url(short_code):
         # First try to get the URL regardless of is_active status
         url = URL.get(URL.short_code == short_code)
         
-        # The Slumbering Guide: Check if URL is active
+        # Challenge 3: The Slumbering Guide - Check if URL is active/dormant
         if not url.is_active:
             return jsonify({"error": "Short URL is inactive"}), 410
         
